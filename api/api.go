@@ -80,14 +80,16 @@ func handleSubmitTx(c *gin.Context) {
 				logger.Errorf("failed to send request to backend %s: %s", backend, err)
 				return
 			}
+			// We have to read the entire response body and close it to prevent a memory leak
+			respBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				logger.Errorf("failed to read response body: %s", err)
+				return
+			}
+			defer resp.Body.Close()
 			if resp.StatusCode == 202 {
 				logger.Infof("successfully submitted transaction %s to backend %s", txIdHex, backend)
 			} else {
-				respBody, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					logger.Errorf("failed to read response body: %s", err)
-					return
-				}
 				logger.Errorf("failed to send request to backend %s: got response %d, %s", backend, resp.StatusCode, string(respBody))
 			}
 		}(backend)
