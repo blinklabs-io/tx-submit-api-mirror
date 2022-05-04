@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"github.com/cloudstruct/tx-submit-api-mirror/config"
@@ -12,6 +13,8 @@ import (
 	"golang.org/x/crypto/blake2b"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptrace"
+	"time"
 )
 
 func Start(cfg *config.Config) error {
@@ -74,12 +77,26 @@ func handleSubmitTx(c *gin.Context) {
 	// Send request to each backend
 	for _, backend := range cfg.Backends {
 		go func(backend string) {
+			startTime := time.Now()
 			body := bytes.NewBuffer(rawTx)
-			resp, err := http.Post(backend, "application/cbor", body)
+			connReused := false
+			// Trace HTTP request to get information about whether the connection was reused
+			clientTrace := &httptrace.ClientTrace{
+				GotConn: func(info httptrace.GotConnInfo) { connReused = info.Reused },
+			}
+			traceCtx := httptrace.WithClientTrace(context.Background(), clientTrace)
+			req, err := http.NewRequestWithContext(traceCtx, http.MethodPost, backend, body)
+			if err != nil {
+				logger.Errorf("failed to create request: %s", err)
+				return
+			}
+			req.Header.Add("Content-Type", "application/cbor")
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				logger.Errorf("failed to send request to backend %s: %s", backend, err)
 				return
 			}
+			elapsedTime := time.Since(startTime)
 			// We have to read the entire response body and close it to prevent a memory leak
 			respBody, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
@@ -88,9 +105,9 @@ func handleSubmitTx(c *gin.Context) {
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode == 202 {
-				logger.Infof("successfully submitted transaction %s to backend %s", txIdHex, backend)
+				logger.Infow(fmt.Sprintf("successfully submitted transaction %s to backend %s", txIdHex, backend), "latency", elapsedTime.Seconds(), "connReused", connReused)
 			} else {
-				logger.Errorf("failed to send request to backend %s: got response %d, %s", backend, resp.StatusCode, string(respBody))
+				logger.Errorw(fmt.Sprintf("failed to send request to backend %s: got response %d, %s", backend, resp.StatusCode, string(respBody)), "latency", elapsedTime.Seconds(), "connReused", connReused)
 			}
 		}(backend)
 	}
