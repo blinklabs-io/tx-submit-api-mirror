@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/cloudstruct/tx-submit-api-mirror/api"
-	"github.com/cloudstruct/tx-submit-api-mirror/config"
-	"github.com/cloudstruct/tx-submit-api-mirror/logging"
 	"os"
+
+	"github.com/blinklabs-io/tx-submit-api-mirror/api"
+	"github.com/blinklabs-io/tx-submit-api-mirror/config"
+	"github.com/blinklabs-io/tx-submit-api-mirror/logging"
 )
 
 var cmdlineFlags struct {

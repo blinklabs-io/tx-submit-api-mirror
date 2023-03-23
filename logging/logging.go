@@ -1,11 +1,13 @@
 package logging
 
 import (
-	"github.com/cloudstruct/tx-submit-api-mirror/config"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"log"
 	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
+	"github.com/blinklabs-io/tx-submit-api-mirror/config"
 )
 
 type Logger = zap.SugaredLogger

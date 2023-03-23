@@ -6,18 +6,20 @@ ROOT_DIR=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 # Gather all .go files for use in dependencies below
 GO_FILES=$(shell find $(ROOT_DIR) -name '*.go')
 
+mod-tidy:
+	go mod tidy
+
 # Build our program binary
 # Depends on GO_FILES to determine when rebuild is needed
-$(BINARY): $(GO_FILES)
+$(BINARY): mod-tidy $(GO_FILES)
 	# Needed to fetch new dependencies and add them to go.mod
-	go mod tidy
 	go build -o $(BINARY) ./cmd/$(BINARY)
 
-.PHONY: build image
+.PHONY: build image mod-tidy
 
 # Alias for building program binary
 build: $(BINARY)
 
 # Build docker image
 image: build
-	docker build -t cloudstruct/$(BINARY) .
+	docker build -t $(BINARY) .

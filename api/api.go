@@ -5,16 +5,18 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/cloudstruct/tx-submit-api-mirror/config"
-	"github.com/cloudstruct/tx-submit-api-mirror/logging"
-	"github.com/fxamacker/cbor/v2"
-	ginzap "github.com/gin-contrib/zap"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/blake2b"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
 	"time"
+
+	"github.com/fxamacker/cbor/v2"
+	ginzap "github.com/gin-contrib/zap"
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/blake2b"
+
+	"github.com/blinklabs-io/tx-submit-api-mirror/config"
+	"github.com/blinklabs-io/tx-submit-api-mirror/logging"
 )
 
 func Start(cfg *config.Config) error {
