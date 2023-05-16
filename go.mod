@@ -7,7 +7,7 @@ require (
 	github.com/gin-contrib/zap v0.0.2
 	github.com/gin-gonic/gin v1.9.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	go.uber.org/zap v1.21.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.5.0
 	gopkg.in/yaml.v2 v2.4.0
 )
