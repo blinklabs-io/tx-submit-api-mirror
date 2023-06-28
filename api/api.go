@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptrace"
 	"time"
@@ -56,7 +56,7 @@ func handleSubmitTx(c *gin.Context) {
 		return
 	}
 	// Read transaction from request body
-	rawTx, err := ioutil.ReadAll(c.Request.Body)
+	rawTx, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		logger.Errorf("failed to read request body: %s", err)
 		c.String(500, "failed to request body")
@@ -100,7 +100,7 @@ func handleSubmitTx(c *gin.Context) {
 			}
 			elapsedTime := time.Since(startTime)
 			// We have to read the entire response body and close it to prevent a memory leak
-			respBody, err := ioutil.ReadAll(resp.Body)
+			respBody, err := io.ReadAll(resp.Body)
 			if err != nil {
 				logger.Errorf("failed to read response body: %s", err)
 				return
