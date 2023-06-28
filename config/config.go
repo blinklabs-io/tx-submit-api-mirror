@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"os"
 )
 
 type Config struct {
@@ -36,7 +36,7 @@ var globalConfig = &Config{
 func Load(configFile string) (*Config, error) {
 	// Load config file as YAML if provided
 	if configFile != "" {
-		buf, err := ioutil.ReadFile(configFile)
+		buf, err := os.ReadFile(configFile)
 		if err != nil {
 			return nil, fmt.Errorf("error reading config file: %s", err)
 		}
