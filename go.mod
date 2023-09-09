@@ -1,6 +1,6 @@
 module github.com/blinklabs-io/tx-submit-api-mirror
 
-go 1.19
+go 1.20
 
 require (
 	github.com/fxamacker/cbor/v2 v2.5.0
