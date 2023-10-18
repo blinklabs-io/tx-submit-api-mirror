@@ -3,17 +3,15 @@ package api
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptrace"
 	"time"
 
-	"github.com/fxamacker/cbor/v2"
+	"github.com/blinklabs-io/gouroboros/ledger"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/blake2b"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/config"
 	"github.com/blinklabs-io/tx-submit-api-mirror/logging"
@@ -66,16 +64,20 @@ func handleSubmitTx(c *gin.Context) {
 		logger.Errorf("failed to close request body: %s", err)
 	}
 	logger.Debugf("transaction dump: %x", rawTx)
-	// Unwrap transaction and calculate ID
-	var txUnwrap []cbor.RawMessage
-	if err := cbor.Unmarshal(rawTx, &txUnwrap); err != nil {
-		logger.Errorf("failed to unwrap transaction CBOR: %s", err)
-		c.String(400, fmt.Sprintf("failed to unwrap transaction CBOR: %s", err))
+	// Determine transaction type (era)
+	txType, err := ledger.DetermineTransactionType(rawTx)
+	if err != nil {
+		logger.Errorf("could not parse transaction to determine type: %s", err)
+		c.JSON(400, "could not parse transaction to determine type")
 		return
 	}
-	txId := blake2b.Sum256(txUnwrap[0])
-	txIdHex := hex.EncodeToString(txId[:])
-	logger.Debugf("calculated transaction ID %s", txIdHex)
+	tx, err := ledger.NewTransactionFromCbor(txType, rawTx)
+	if err != nil {
+		logger.Errorf("failed to parse transaction CBOR: %s", err)
+		c.String(400, fmt.Sprintf("failed to parse transaction CBOR: %s", err))
+		return
+	}
+	logger.Debugf("transaction ID %s", tx.Hash())
 	// Send request to each backend
 	for _, backend := range cfg.Backends {
 		go func(backend string) {
@@ -107,12 +109,12 @@ func handleSubmitTx(c *gin.Context) {
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode == 202 {
-				logger.Infow(fmt.Sprintf("successfully submitted transaction %s to backend %s", txIdHex, backend), "latency", elapsedTime.Seconds(), "connReused", connReused)
+				logger.Infow(fmt.Sprintf("successfully submitted transaction %s to backend %s", tx.Hash(), backend), "latency", elapsedTime.Seconds(), "connReused", connReused)
 			} else {
 				logger.Errorw(fmt.Sprintf("failed to send request to backend %s: got response %d, %s", backend, resp.StatusCode, string(respBody)), "latency", elapsedTime.Seconds(), "connReused", connReused)
 			}
 		}(backend)
 	}
 	// Return transaction ID
-	c.String(202, txIdHex)
+	c.String(202, tx.Hash())
 }
