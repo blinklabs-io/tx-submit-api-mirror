@@ -36,7 +36,9 @@ func Start(cfg *config.Config) error {
 	router.POST("/api/submit/tx", handleSubmitTx)
 
 	// Start listener
-	err := router.Run(fmt.Sprintf("%s:%d", cfg.Api.ListenAddress, cfg.Api.ListenPort))
+	err := router.Run(
+		fmt.Sprintf("%s:%d", cfg.Api.ListenAddress, cfg.Api.ListenPort),
+	)
 	return err
 }
 
@@ -88,8 +90,16 @@ func handleSubmitTx(c *gin.Context) {
 			clientTrace := &httptrace.ClientTrace{
 				GotConn: func(info httptrace.GotConnInfo) { connReused = info.Reused },
 			}
-			traceCtx := httptrace.WithClientTrace(context.Background(), clientTrace)
-			req, err := http.NewRequestWithContext(traceCtx, http.MethodPost, backend, body)
+			traceCtx := httptrace.WithClientTrace(
+				context.Background(),
+				clientTrace,
+			)
+			req, err := http.NewRequestWithContext(
+				traceCtx,
+				http.MethodPost,
+				backend,
+				body,
+			)
 			if err != nil {
 				logger.Errorf("failed to create request: %s", err)
 				return
@@ -97,7 +107,11 @@ func handleSubmitTx(c *gin.Context) {
 			req.Header.Add("Content-Type", "application/cbor")
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				logger.Errorf("failed to send request to backend %s: %s", backend, err)
+				logger.Errorf(
+					"failed to send request to backend %s: %s",
+					backend,
+					err,
+				)
 				return
 			}
 			elapsedTime := time.Since(startTime)
@@ -109,7 +123,17 @@ func handleSubmitTx(c *gin.Context) {
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode == 202 {
-				logger.Infow(fmt.Sprintf("successfully submitted transaction %s to backend %s", tx.Hash(), backend), "latency", elapsedTime.Seconds(), "connReused", connReused)
+				logger.Infow(
+					fmt.Sprintf(
+						"successfully submitted transaction %s to backend %s",
+						tx.Hash(),
+						backend,
+					),
+					"latency",
+					elapsedTime.Seconds(),
+					"connReused",
+					connReused,
+				)
 			} else {
 				logger.Errorw(fmt.Sprintf("failed to send request to backend %s: got response %d, %s", backend, resp.StatusCode, string(respBody)), "latency", elapsedTime.Seconds(), "connReused", connReused)
 			}

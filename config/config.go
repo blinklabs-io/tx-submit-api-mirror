@@ -19,7 +19,7 @@ type LoggingConfig struct {
 
 type ApiConfig struct {
 	ListenAddress string `yaml:"address" envconfig:"API_LISTEN_ADDRESS"`
-	ListenPort    uint   `yaml:"port" envconfig:"API_LISTEN_PORT"`
+	ListenPort    uint   `yaml:"port"    envconfig:"API_LISTEN_PORT"`
 }
 
 // Singleton config instance with default values
