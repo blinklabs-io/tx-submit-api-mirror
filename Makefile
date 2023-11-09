@@ -24,6 +24,18 @@ $(BINARY): mod-tidy $(GO_FILES)
 mod-tidy:
 	go mod tidy
 
+clean:
+	rm -f $(BINARY)
+
+format:
+	go fmt ./...
+
+golines:
+	golines -w --ignore-generated --chain-split-dots --max-len=80 --reformat-tags .
+
+test:
+	go test -v ./...
+
 # Build docker image
 image: build
 	docker build -t $(BINARY) .
