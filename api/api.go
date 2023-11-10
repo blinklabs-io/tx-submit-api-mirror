@@ -7,9 +7,12 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptrace"
+	"strings"
 	"time"
 
+	"github.com/blinklabs-io/cardano-models"
 	"github.com/blinklabs-io/gouroboros/ledger"
+	"github.com/fxamacker/cbor/v2"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 
@@ -79,7 +82,21 @@ func handleSubmitTx(c *gin.Context) {
 		c.String(400, fmt.Sprintf("failed to parse transaction CBOR: %s", err))
 		return
 	}
-	logger.Debugf("transaction ID %s", tx.Hash())
+	logger.Debugf("transaction ID: %s", tx.Hash())
+	// Debug log metadata messages
+	if tx.Metadata() != nil {
+		mdCbor := tx.Metadata().Cbor()
+		var msgMetadata models.Cip20Metadata
+		err := cbor.Unmarshal(mdCbor, &msgMetadata)
+		if err == nil {
+			if msgMetadata.Num674.Msg != nil {
+				logger.Debugf(
+					"metadata msg: %s",
+					strings.Join(msgMetadata.Num674.Msg, "\n"),
+				)
+			}
+		}
+	}
 	// Send request to each backend
 	for _, backend := range cfg.Backends {
 		go func(backend string) {
