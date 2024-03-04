@@ -1,7 +1,7 @@
 github.com/blinklabs-io/cardano-models v0.3.0 h1:Xc7H1l4i96Vaf5bBKXrOl1ctL0vyT/bJ9+OrZUqD6E4=
 github.com/blinklabs-io/cardano-models v0.3.0/go.mod h1:mahC1oL4zVM5TCqZzqZ9I2GWAcEfzhJ3tYBpjwBWVI4=
-github.com/blinklabs-io/gouroboros v0.71.0 h1:vu7Obgmn/kjFYMiIS4dr9PurzklQhgKVsX/m4hc3eos=
-github.com/blinklabs-io/gouroboros v0.71.0/go.mod h1:9UWZu7J050BNTY6TnXioJjgZiQD0pWzpNwM9T9rjEbY=
+github.com/blinklabs-io/gouroboros v0.72.0 h1:HI9DFQ3wi+pr8iOPH7jOr31rNRf2ij7jA2v3dv+2vOQ=
+github.com/blinklabs-io/gouroboros v0.72.0/go.mod h1:1Vpk6pm86JBKHi5riBQv4EAKixX+XvttWv1o6DewLBg=
 github.com/bytedance/sonic v1.5.0/go.mod h1:ED5hyg4y6t3/9Ku1R6dU/4KyJ48DZ4jPhfY1O2AihPM=
 github.com/bytedance/sonic v1.10.0-rc/go.mod h1:ElCzW+ufi8qKqNW0FY314xriJhyJhuoJ3gFZdAHF7NM=
 github.com/bytedance/sonic v1.11.2 h1:ywfwo0a/3j9HR8wsYGWsIWl2mvRsI950HyoxiBERw5A=
@@ -75,6 +75,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
+github.com/utxorpc/go-codegen v0.4.0 h1:9YzCURt5Jrnwii8VmQYeKH6K/wYXMQx+DmdjzieSZpM=
+github.com/utxorpc/go-codegen v0.4.0/go.mod h1:rFk8LI55uFqnwftPYTTklTKB8Lhwh4K+ltb2BtrFe3g=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
