@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/blinklabs-io/cardano-models v0.3.0
-	github.com/blinklabs-io/gouroboros v0.71.0
+	github.com/blinklabs-io/gouroboros v0.72.0
 	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/gin-contrib/zap v1.1.0
 	github.com/gin-gonic/gin v1.9.1
@@ -34,6 +34,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/utxorpc/go-codegen v0.4.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
