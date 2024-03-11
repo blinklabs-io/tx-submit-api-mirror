@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/blinklabs-io/cardano-models v0.3.0
-	github.com/blinklabs-io/gouroboros v0.72.0
+	github.com/blinklabs-io/gouroboros v0.73.1
 	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/gin-contrib/zap v1.1.0
 	github.com/gin-gonic/gin v1.9.1
