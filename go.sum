@@ -1,7 +1,7 @@
 github.com/blinklabs-io/cardano-models v0.3.0 h1:Xc7H1l4i96Vaf5bBKXrOl1ctL0vyT/bJ9+OrZUqD6E4=
 github.com/blinklabs-io/cardano-models v0.3.0/go.mod h1:mahC1oL4zVM5TCqZzqZ9I2GWAcEfzhJ3tYBpjwBWVI4=
-github.com/blinklabs-io/gouroboros v0.72.0 h1:HI9DFQ3wi+pr8iOPH7jOr31rNRf2ij7jA2v3dv+2vOQ=
-github.com/blinklabs-io/gouroboros v0.72.0/go.mod h1:1Vpk6pm86JBKHi5riBQv4EAKixX+XvttWv1o6DewLBg=
+github.com/blinklabs-io/gouroboros v0.73.1 h1:g5ZSL6k/Wl1Dciaazy9A5/MpFKmk1d1i+eDcGOBm9Xs=
+github.com/blinklabs-io/gouroboros v0.73.1/go.mod h1:cvu7kpPIso3IS5Dexfq4m7sMnyLMsLFOE5jjDBEtC7E=
 github.com/bytedance/sonic v1.5.0/go.mod h1:ED5hyg4y6t3/9Ku1R6dU/4KyJ48DZ4jPhfY1O2AihPM=
 github.com/bytedance/sonic v1.10.0-rc/go.mod h1:ElCzW+ufi8qKqNW0FY314xriJhyJhuoJ3gFZdAHF7NM=
 github.com/bytedance/sonic v1.11.2 h1:ywfwo0a/3j9HR8wsYGWsIWl2mvRsI950HyoxiBERw5A=
