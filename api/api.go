@@ -79,8 +79,10 @@ func handleSubmitTx(c *gin.Context) {
 		c.String(500, "failed to request body")
 		return
 	}
-	if err := c.Request.Body.Close(); err != nil {
-		logger.Errorf("failed to close request body: %s", err)
+	if c.Request.Body != nil {
+		if err := c.Request.Body.Close(); err != nil {
+			logger.Errorf("failed to close request body: %s", err)
+		}
 	}
 	logger.Debugf("transaction dump: %x", rawTx)
 	// Determine transaction type (era)
