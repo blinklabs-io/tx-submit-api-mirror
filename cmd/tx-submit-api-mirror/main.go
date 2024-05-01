@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"os"
 
+	_ "go.uber.org/automaxprocs"
+
 	"github.com/blinklabs-io/tx-submit-api-mirror/api"
 	"github.com/blinklabs-io/tx-submit-api-mirror/config"
 	"github.com/blinklabs-io/tx-submit-api-mirror/logging"
