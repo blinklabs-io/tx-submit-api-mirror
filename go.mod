@@ -3,8 +3,8 @@ module github.com/blinklabs-io/tx-submit-api-mirror
 go 1.21
 
 require (
-	github.com/blinklabs-io/cardano-models v0.3.3
-	github.com/blinklabs-io/gouroboros v0.88.0
+	github.com/blinklabs-io/cardano-models v0.3.4
+	github.com/blinklabs-io/gouroboros v0.89.0
 	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/gin-contrib/zap v1.1.3
 	github.com/gin-gonic/gin v1.10.0
@@ -24,7 +24,7 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.20.0 // indirect
+	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
