@@ -16,9 +16,10 @@ package config
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v2"
-	"os"
 )
 
 type Config struct {
@@ -34,6 +35,7 @@ type LoggingConfig struct {
 type ApiConfig struct {
 	ListenAddress string `yaml:"address" envconfig:"API_LISTEN_ADDRESS"`
 	ListenPort    uint   `yaml:"port"    envconfig:"API_LISTEN_PORT"`
+	ClientTimeout uint   `yaml:"client_timeout"    envconfig:"CLIENT_TIMEOUT"`
 }
 
 // Singleton config instance with default values
@@ -44,6 +46,7 @@ var globalConfig = &Config{
 	Api: ApiConfig{
 		ListenAddress: "",
 		ListenPort:    8090,
+		ClientTimeout: 60000, // [ms]
 	},
 }
 
