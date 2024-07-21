@@ -3,7 +3,7 @@ module github.com/blinklabs-io/tx-submit-api-mirror
 go 1.21
 
 require (
-	github.com/blinklabs-io/cardano-models v0.3.5
+	github.com/blinklabs-io/cardano-models v0.3.6
 	github.com/blinklabs-io/gouroboros v0.90.0
 	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/gin-contrib/zap v1.1.3
