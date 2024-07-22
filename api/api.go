@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blinklabs-io/cardano-models"
+	models "github.com/blinklabs-io/cardano-models"
 	"github.com/blinklabs-io/gouroboros/ledger"
 	"github.com/fxamacker/cbor/v2"
 	ginzap "github.com/gin-contrib/zap"
@@ -113,6 +113,9 @@ func handleSubmitTx(c *gin.Context) {
 			}
 		}
 	}
+	// Create custom HTTP client
+	client := createHTTPClient(cfg)
+
 	// Send request to each backend
 	for _, backend := range cfg.Backends {
 		go func(backend string) {
@@ -138,7 +141,7 @@ func handleSubmitTx(c *gin.Context) {
 				return
 			}
 			req.Header.Add("Content-Type", "application/cbor")
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := client.Do(req)
 			if err != nil {
 				logger.Errorf(
 					"failed to send request to backend %s: %s",
@@ -174,4 +177,18 @@ func handleSubmitTx(c *gin.Context) {
 	}
 	// Return transaction ID
 	c.String(202, tx.Hash())
+}
+
+// createHTTPClient with custom timeout
+func createHTTPClient(cfg *config.Config) *http.Client {
+	return &http.Client{
+		Timeout: time.Duration(cfg.Api.ClientTimeout) * time.Millisecond,
+		Transport: &http.Transport{
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			DisableCompression:    false,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
 }
