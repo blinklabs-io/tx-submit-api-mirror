@@ -33,9 +33,9 @@ type LoggingConfig struct {
 }
 
 type ApiConfig struct {
-	ListenAddress string `yaml:"address" envconfig:"API_LISTEN_ADDRESS"`
-	ListenPort    uint   `yaml:"port"    envconfig:"API_LISTEN_PORT"`
-	ClientTimeout uint   `yaml:"client_timeout"    envconfig:"CLIENT_TIMEOUT"`
+	ListenAddress string `yaml:"address"        envconfig:"API_LISTEN_ADDRESS"`
+	ListenPort    uint   `yaml:"port"           envconfig:"API_LISTEN_PORT"`
+	ClientTimeout uint   `yaml:"client_timeout" envconfig:"CLIENT_TIMEOUT"`
 }
 
 // Singleton config instance with default values

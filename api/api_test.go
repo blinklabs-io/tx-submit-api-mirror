@@ -17,10 +17,14 @@ func TestHTTPClientTimeout(t *testing.T) {
 	})
 
 	// Create a test server that introduces a delay
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(200 * time.Millisecond) // Delay longer than client timeout
-		w.WriteHeader(http.StatusOK)
-	}))
+	testServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(
+				200 * time.Millisecond,
+			) // Delay longer than client timeout
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
 	defer testServer.Close()
 
 	// Make a request to the test server
@@ -43,10 +47,14 @@ func TestHTTPClientTimeoutPass(t *testing.T) {
 	})
 
 	// Create a test server that introduces a delay
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(200 * time.Millisecond) // Delay shorter than client timeout
-		w.WriteHeader(http.StatusOK)
-	}))
+	testServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(
+				200 * time.Millisecond,
+			) // Delay shorter than client timeout
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
 	defer testServer.Close()
 
 	// Make a request to the test server
