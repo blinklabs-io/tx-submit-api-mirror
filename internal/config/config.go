@@ -25,6 +25,7 @@ import (
 type Config struct {
 	Logging  LoggingConfig `yaml:"logging"`
 	Api      ApiConfig     `yaml:"api"`
+	Tls     TlsConfig     `yaml:"tls"`
 	Backends []string      `yaml:"backends" envconfig:"BACKENDS"`
 }
 
@@ -36,6 +37,11 @@ type ApiConfig struct {
 	ListenAddress string `yaml:"address"        envconfig:"API_LISTEN_ADDRESS"`
 	ListenPort    uint   `yaml:"port"           envconfig:"API_LISTEN_PORT"`
 	ClientTimeout uint   `yaml:"client_timeout" envconfig:"CLIENT_TIMEOUT"`
+}
+
+type TlsConfig struct {
+	CertFilePath string `yaml:"certFilePath" envconfig:"TLS_CERT_FILE_PATH"`
+	KeyFilePath  string `yaml:"keyFilePath"  envconfig:"TLS_KEY_FILE_PATH"`
 }
 
 // Singleton config instance with default values
