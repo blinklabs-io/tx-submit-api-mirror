@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	_ "go.uber.org/automaxprocs"
+	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/api"
 	"github.com/blinklabs-io/tx-submit-api-mirror/config"
@@ -28,6 +28,10 @@ import (
 
 var cmdlineFlags struct {
 	configFile string
+}
+
+func logPrintf(format string, v ...any) {
+	logging.GetLogger().Infof(format, v...)
 }
 
 func main() {
@@ -57,6 +61,14 @@ func main() {
 			return
 		}
 	}()
+
+	// Configure max processes with our logger wrapper, toss undo func
+	_, err = maxprocs.Set(maxprocs.Logger(logPrintf))
+	if err != nil {
+		// If we hit this, something really wrong happened
+		logger.Errorf(err.Error())
+		os.Exit(1)
+	}
 
 	// Start API listener
 	logger.Infof(
