@@ -35,6 +35,21 @@ import (
 )
 
 func Start(cfg *config.Config) error {
+	// Standard logging
+	logger := logging.GetLogger()
+	if cfg.Tls.CertFilePath != "" && cfg.Tls.KeyFilePath != "" {
+		logger.Infof(
+			"starting API TLS listener on %s:%d",
+			cfg.Api.ListenAddress,
+			cfg.Api.ListenPort,
+		)
+	} else {
+		logger.Infof(
+			"starting API listener on %s:%d",
+			cfg.Api.ListenAddress,
+			cfg.Api.ListenPort,
+		)
+	}
 	// Disable gin debug output
 	gin.SetMode(gin.ReleaseMode)
 	gin.DisableConsoleColor()
@@ -52,11 +67,18 @@ func Start(cfg *config.Config) error {
 	router.GET("/healthcheck", handleHealthcheck)
 	router.POST("/api/submit/tx", handleSubmitTx)
 
-	// Start listener
-	err := router.Run(
-		fmt.Sprintf("%s:%d", cfg.Api.ListenAddress, cfg.Api.ListenPort),
-	)
-	return err
+	// Start API listener
+	if cfg.Tls.CertFilePath != "" && cfg.Tls.KeyFilePath != "" {
+		return router.RunTLS(
+			fmt.Sprintf("%s:%d", cfg.Api.ListenAddress, cfg.Api.ListenPort),
+			cfg.Tls.CertFilePath,
+			cfg.Tls.KeyFilePath,
+		)
+	} else {
+		return router.Run(fmt.Sprintf("%s:%d",
+			cfg.Api.ListenAddress,
+			cfg.Api.ListenPort))
+	}
 }
 
 func handleHealthcheck(c *gin.Context) {
