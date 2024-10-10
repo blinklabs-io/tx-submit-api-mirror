@@ -25,7 +25,7 @@ import (
 type Config struct {
 	Logging  LoggingConfig `yaml:"logging"`
 	Api      ApiConfig     `yaml:"api"`
-	Tls     TlsConfig     `yaml:"tls"`
+	Tls      TlsConfig     `yaml:"tls"`
 	Backends []string      `yaml:"backends" envconfig:"BACKENDS"`
 }
 

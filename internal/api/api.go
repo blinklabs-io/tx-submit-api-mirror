@@ -27,6 +27,7 @@ import (
 	models "github.com/blinklabs-io/cardano-models"
 	"github.com/blinklabs-io/gouroboros/ledger"
 	"github.com/fxamacker/cbor/v2"
+	cors "github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 
@@ -58,6 +59,8 @@ func Start(cfg *config.Config) error {
 	router := gin.New()
 	// Catch panics and return a 500
 	router.Use(gin.Recovery())
+	// Configure cors
+	router.Use(cors.Default())
 	// Access logging
 	accessLogger := logging.GetAccessLogger()
 	router.Use(ginzap.Ginzap(accessLogger, "", true))

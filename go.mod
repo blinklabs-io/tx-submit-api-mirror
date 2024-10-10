@@ -6,6 +6,7 @@ require (
 	github.com/blinklabs-io/cardano-models v0.3.7
 	github.com/blinklabs-io/gouroboros v0.98.0
 	github.com/fxamacker/cbor/v2 v2.7.0
+	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-contrib/zap v1.1.4
 	github.com/gin-gonic/gin v1.10.0
 	github.com/kelseyhightower/envconfig v1.4.0
