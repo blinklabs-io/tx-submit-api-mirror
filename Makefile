@@ -27,8 +27,9 @@ mod-tidy:
 clean:
 	rm -f $(BINARY)
 
-format:
+format: mod-tidy
 	go fmt ./...
+	gofmt -s -w $(GO_FILES)
 
 golines:
 	golines -w --ignore-generated --chain-split-dots --max-len=80 --reformat-tags .
