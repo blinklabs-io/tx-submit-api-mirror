@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.8
 
 require (
-	github.com/blinklabs-io/cardano-models v0.3.8
+	github.com/blinklabs-io/cardano-models v0.4.0
 	github.com/blinklabs-io/gouroboros v0.105.2
 	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/gin-contrib/cors v1.7.3
