@@ -17,6 +17,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,6 +31,7 @@ import (
 	cors "github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	maestro "github.com/maestro-org/go-sdk/client"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/logging"
@@ -196,9 +198,73 @@ func handleSubmitTx(c *gin.Context) {
 					connReused,
 				)
 			} else {
-				logger.Errorw(fmt.Sprintf("failed to send request to backend %s: got response %d, %s", backend, resp.StatusCode, string(respBody)), "latency", elapsedTime.Seconds(), "connReused", connReused)
+				logger.Errorw(
+					fmt.Sprintf(
+						"failed to send request to backend %s: got response %d, %s",
+						backend,
+						resp.StatusCode,
+						string(respBody),
+					),
+					"latency",
+					elapsedTime.Seconds(),
+					"connReused",
+					connReused,
+				)
 			}
 		}(backend)
+	}
+	// Optional Maestro
+	if cfg.Maestro.ApiKey != "" {
+		go func(cfg *config.Config, rawTx []byte) {
+			txHex := hex.EncodeToString(rawTx)
+			maestroClient := maestro.NewClient(cfg.Maestro.ApiKey, cfg.Maestro.Network)
+			startTime := time.Now()
+			if cfg.Maestro.TurboTx {
+				_, err := maestroClient.TxManagerSubmitTurbo(txHex)
+				elapsedTime := time.Since(startTime)
+				if err != nil {
+					logger.Errorw(
+						fmt.Sprintf(
+							"failed to send request to Maestro: got response %v",
+							err,
+						),
+						"latency",
+						elapsedTime.Seconds(),
+					)
+					return
+				}
+				logger.Infow(
+					fmt.Sprintf(
+						"successfully submitted transaction %s to Maestro TurboTx",
+						tx.Hash(),
+					),
+					"latency",
+					elapsedTime.Seconds(),
+				)
+				return
+			}
+			_, err := maestroClient.TxManagerSubmit(txHex)
+			elapsedTime := time.Since(startTime)
+			if err != nil {
+				logger.Errorw(
+					fmt.Sprintf(
+						"failed to send request to Maestro: got response %v",
+						err,
+					),
+					"latency",
+					elapsedTime.Seconds(),
+				)
+				return
+			}
+			logger.Infow(
+				fmt.Sprintf(
+					"successfully submitted transaction %s to Maestro",
+					tx.Hash(),
+				),
+				"latency",
+				elapsedTime.Seconds(),
+			)
+		}(cfg, rawTx)
 	}
 	// Return transaction ID
 	c.String(202, tx.Hash())
