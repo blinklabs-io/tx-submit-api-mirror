@@ -23,20 +23,27 @@ import (
 )
 
 type Config struct {
-	Logging  LoggingConfig `yaml:"logging"`
 	Api      ApiConfig     `yaml:"api"`
+	Logging  LoggingConfig `yaml:"logging"`
+	Maestro  MaestroConfig `yaml:"maestro"`
 	Tls      TlsConfig     `yaml:"tls"`
 	Backends []string      `yaml:"backends" envconfig:"BACKENDS"`
-}
-
-type LoggingConfig struct {
-	Level string `yaml:"level" envconfig:"LOGGING_LEVEL"`
 }
 
 type ApiConfig struct {
 	ListenAddress string `yaml:"address"        envconfig:"API_LISTEN_ADDRESS"`
 	ListenPort    uint   `yaml:"port"           envconfig:"API_LISTEN_PORT"`
 	ClientTimeout uint   `yaml:"client_timeout" envconfig:"CLIENT_TIMEOUT"`
+}
+
+type LoggingConfig struct {
+	Level string `yaml:"level" envconfig:"LOGGING_LEVEL"`
+}
+
+type MaestroConfig struct {
+	ApiKey  string `yaml:"apiKey"  envconfig:"MAESTRO_API_KEY"`
+	Network string `yaml:"network" envconfig:"MAESTRO_NETWORK"`
+	TurboTx bool   `yaml:"turboTx" envconfig:"MAESTRO_TURBO_TX"`
 }
 
 type TlsConfig struct {
@@ -46,13 +53,17 @@ type TlsConfig struct {
 
 // Singleton config instance with default values
 var globalConfig = &Config{
-	Logging: LoggingConfig{
-		Level: "info",
-	},
 	Api: ApiConfig{
 		ListenAddress: "",
 		ListenPort:    8090,
 		ClientTimeout: 60000, // [ms]
+	},
+	Logging: LoggingConfig{
+		Level: "info",
+	},
+	Maestro: MaestroConfig{
+		Network: "mainnet",
+		TurboTx: false,
 	},
 }
 
