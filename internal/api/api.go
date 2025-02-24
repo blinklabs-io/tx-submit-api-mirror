@@ -1,4 +1,4 @@
-// Copyright 2024 Blink Labs Software
+// Copyright 2025 Blink Labs Software
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptrace"
 	"strings"
@@ -272,8 +273,12 @@ func handleSubmitTx(c *gin.Context) {
 
 // createHTTPClient with custom timeout
 func createHTTPClient(cfg *config.Config) *http.Client {
+	timeout := int64(60000)
+	if cfg.Api.ClientTimeout < math.MaxInt64 {
+		timeout = int64(cfg.Api.ClientTimeout) // #nosec G115
+	}
 	return &http.Client{
-		Timeout: time.Duration(cfg.Api.ClientTimeout) * time.Millisecond,
+		Timeout: time.Duration(timeout) * time.Millisecond,
 		Transport: &http.Transport{
 			MaxIdleConns:          100,
 			IdleConnTimeout:       90 * time.Second,
