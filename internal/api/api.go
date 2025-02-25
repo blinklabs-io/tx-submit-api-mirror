@@ -217,7 +217,10 @@ func handleSubmitTx(c *gin.Context) {
 	if cfg.Maestro.ApiKey != "" {
 		go func(cfg *config.Config, rawTx []byte) {
 			txHex := hex.EncodeToString(rawTx)
-			maestroClient := maestro.NewClient(cfg.Maestro.ApiKey, cfg.Maestro.Network)
+			maestroClient := maestro.NewClient(
+				cfg.Maestro.ApiKey,
+				cfg.Maestro.Network,
+			)
 			startTime := time.Now()
 			if cfg.Maestro.TurboTx {
 				_, err := maestroClient.TxManagerSubmitTurbo(txHex)
