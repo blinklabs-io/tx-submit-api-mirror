@@ -10,7 +10,7 @@ env:
   IMAGE_NAME: '${{ github.repository }}'
 
 permissions:
-  content: read
+  contents: read
 
 jobs:
   docker:
