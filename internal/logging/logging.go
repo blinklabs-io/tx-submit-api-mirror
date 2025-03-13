@@ -18,10 +18,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
 )
 
 type Logger = zap.SugaredLogger

@@ -28,14 +28,13 @@ import (
 
 	models "github.com/blinklabs-io/cardano-models"
 	"github.com/blinklabs-io/gouroboros/ledger"
+	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
+	"github.com/blinklabs-io/tx-submit-api-mirror/internal/logging"
 	"github.com/fxamacker/cbor/v2"
 	cors "github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	maestro "github.com/maestro-org/go-sdk/client"
-
-	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
-	"github.com/blinklabs-io/tx-submit-api-mirror/internal/logging"
 )
 
 func Start(cfg *config.Config) error {
@@ -186,7 +185,7 @@ func handleSubmitTx(c *gin.Context) {
 				return
 			}
 			defer resp.Body.Close()
-			if resp.StatusCode == 202 {
+			if resp.StatusCode == http.StatusAccepted {
 				logger.Infow(
 					fmt.Sprintf(
 						"successfully submitted transaction %s to backend %s",

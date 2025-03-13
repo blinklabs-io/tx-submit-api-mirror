@@ -19,11 +19,10 @@ import (
 	"fmt"
 	"os"
 
-	"go.uber.org/automaxprocs/maxprocs"
-
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/api"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/logging"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 var cmdlineFlags struct {
