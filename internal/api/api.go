@@ -270,7 +270,7 @@ func handleSubmitTx(c *gin.Context) {
 		}(cfg, rawTx)
 	}
 	// Return transaction ID
-	c.String(202, tx.Hash())
+	c.String(202, tx.Hash().String())
 }
 
 // createHTTPClient with custom timeout
