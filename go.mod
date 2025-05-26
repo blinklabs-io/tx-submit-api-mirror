@@ -10,7 +10,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.8.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-contrib/zap v1.1.5
-	github.com/gin-gonic/gin v1.10.0
+	github.com/gin-gonic/gin v1.10.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/maestro-org/go-sdk v1.2.1
 	go.uber.org/automaxprocs v1.6.0
