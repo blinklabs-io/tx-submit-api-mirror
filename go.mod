@@ -6,7 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/blinklabs-io/cardano-models v0.5.1
-	github.com/blinklabs-io/gouroboros v0.131.0
+	github.com/blinklabs-io/gouroboros v0.132.0
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-contrib/zap v1.1.5
@@ -20,7 +20,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/blinklabs-io/plutigo v0.0.4 // indirect
+	github.com/blinklabs-io/plutigo v0.0.6 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.6 // indirect
 	github.com/bytedance/sonic v1.13.3 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
