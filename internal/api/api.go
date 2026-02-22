@@ -168,7 +168,7 @@ func handleSubmitTx(c *gin.Context) {
 				return
 			}
 			req.Header.Add("Content-Type", "application/cbor")
-			resp, err := client.Do(req)
+			resp, err := client.Do(req) //nolint:gosec // G704: backend URL is from admin-controlled config
 			if err != nil {
 				logger.Errorf(
 					"failed to send request to backend %s: %s",
