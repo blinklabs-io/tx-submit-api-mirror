@@ -41,7 +41,7 @@ type LoggingConfig struct {
 }
 
 type MaestroConfig struct {
-	ApiKey  string `yaml:"apiKey"  envconfig:"MAESTRO_API_KEY"`
+	ApiKey  string `yaml:"apiKey"  envconfig:"MAESTRO_API_KEY"` //nolint:gosec // G117: config field, not a hardcoded secret
 	Network string `yaml:"network" envconfig:"MAESTRO_NETWORK"`
 	TurboTx bool   `yaml:"turboTx" envconfig:"MAESTRO_TURBO_TX"`
 }
