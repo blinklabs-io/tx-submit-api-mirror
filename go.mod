@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/blinklabs-io/cardano-models v0.7.2
-	github.com/blinklabs-io/gouroboros v0.186.1
+	github.com/blinklabs-io/gouroboros v0.186.2
 	github.com/fxamacker/cbor/v2 v2.9.2
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-contrib/zap v1.1.7
