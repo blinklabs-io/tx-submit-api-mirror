@@ -7,7 +7,7 @@ require (
 	github.com/blinklabs-io/gouroboros v0.204.0
 	github.com/fxamacker/cbor/v2 v2.9.3
 	github.com/gin-contrib/cors v1.7.8
-	github.com/gin-contrib/zap v1.1.7
+	github.com/gin-contrib/zap v1.1.8
 	github.com/gin-gonic/gin v1.12.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/maestro-org/go-sdk v1.2.1
