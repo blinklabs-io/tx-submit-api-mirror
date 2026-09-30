@@ -51,7 +51,6 @@ type TlsConfig struct {
 	KeyFilePath  string `yaml:"keyFilePath"  envconfig:"TLS_KEY_FILE_PATH"`
 }
 
-// Singleton config instance with default values
 var globalConfig = &Config{
 	Api: ApiConfig{
 		ListenAddress: "",
@@ -68,7 +67,6 @@ var globalConfig = &Config{
 }
 
 func Load(configFile string) (*Config, error) {
-	// Load config file as YAML if provided
 	if configFile != "" {
 		buf, err := os.ReadFile(configFile)
 		if err != nil {
@@ -89,7 +87,7 @@ func Load(configFile string) (*Config, error) {
 	return globalConfig, nil
 }
 
-// Return global config instance
+// GetConfig returns the global configuration instance.
 func GetConfig() *Config {
 	return globalConfig
 }

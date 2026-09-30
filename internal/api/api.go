@@ -273,7 +273,6 @@ func handleSubmitTx(c *gin.Context) {
 	c.String(202, tx.Hash().String())
 }
 
-// createHTTPClient with custom timeout
 func createHTTPClient(cfg *config.Config) *http.Client {
 	timeout := int64(60000)
 	if cfg.Api.ClientTimeout < math.MaxInt64 {
