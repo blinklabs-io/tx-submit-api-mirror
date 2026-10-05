@@ -1,4 +1,7 @@
 BINARY=tx-submit-api-mirror
+GOOS ?= $(shell go env GOOS)
+BINARY_SUFFIX := $(if $(filter windows,$(GOOS)),.exe,)
+BINARY_OUTPUT := $(BINARY)$(BINARY_SUFFIX)
 
 ROOT_DIR=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -8,19 +11,19 @@ GO_LDFLAGS=-ldflags "-s -w"
 
 .PHONY: build image mod-tidy
 
-build: $(BINARY)
+build: $(BINARY_OUTPUT)
 
-$(BINARY): mod-tidy $(GO_FILES)
+$(BINARY_OUTPUT): mod-tidy $(GO_FILES)
 	CGO_ENABLED=0 go build \
 		$(GO_LDFLAGS) \
-		-o $(BINARY) \
+		-o $(BINARY_OUTPUT) \
 		./cmd/$(BINARY)
 
 mod-tidy:
 	go mod tidy
 
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) $(BINARY).exe
 
 format: mod-tidy
 	go fmt ./...
