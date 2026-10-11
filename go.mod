@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	github.com/blinklabs-io/cardano-models v0.7.2
-	github.com/blinklabs-io/gouroboros v0.207.4
+	github.com/blinklabs-io/gouroboros v0.208.5
 	github.com/fxamacker/cbor/v2 v2.9.4
 	github.com/gin-contrib/cors v1.7.9
 	github.com/gin-contrib/zap v1.1.9
@@ -19,7 +19,7 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.6 // indirect
-	github.com/blinklabs-io/plutigo v0.7.1 // indirect
+	github.com/blinklabs-io/plutigo v0.7.2 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.5.0 // indirect
 	github.com/btcsuite/btcd/btcutil v1.2.0 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.2.0 // indirect
