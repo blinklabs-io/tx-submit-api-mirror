@@ -30,7 +30,7 @@ var cmdlineFlags struct {
 }
 
 func logPrintf(format string, v ...any) {
-	logging.GetLogger().Infof(format, v...)
+	logging.GetLogger().Info(fmt.Sprintf(format, v...))
 }
 
 func main() {
@@ -50,28 +50,24 @@ func main() {
 	}
 
 	// Configure logging
-	logging.Setup(&cfg.Logging)
+	if err := logging.Setup(&cfg.Logging); err != nil {
+		fmt.Printf("Failed to configure logging: %s\n", err)
+		os.Exit(1)
+	}
 	logger := logging.GetLogger()
-	// Sync logger on exit
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			// We don't actually care about the error here, but we have to do something
-			// to appease the linter
-			return
-		}
-	}()
 
 	// Configure max processes with our logger wrapper, toss undo func
 	_, err = maxprocs.Set(maxprocs.Logger(logPrintf))
 	if err != nil {
 		// If we hit this, something really wrong happened
-		logger.Errorf(err.Error())
+		logger.Error("failed to set max processes", "error", err)
 		os.Exit(1)
 	}
 
 	// Start API listener
 	if err := api.Start(cfg); err != nil {
-		logger.Fatalf("failed to start API: %s", err)
+		logger.Error("failed to start API", "error", err)
+		os.Exit(1)
 	}
 
 	// Wait forever

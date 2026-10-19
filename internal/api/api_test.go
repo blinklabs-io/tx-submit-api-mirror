@@ -15,12 +15,16 @@
 package api
 
 import (
+	"bytes"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
+	"github.com/gin-gonic/gin"
 )
 
 func TestHTTPClientTimeout(t *testing.T) {
@@ -82,5 +86,32 @@ func TestHTTPClientTimeoutPass(t *testing.T) {
 		t.Errorf("Expected response, but got nil")
 	} else if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status OK, but got %v", resp.StatusCode)
+	}
+}
+
+// A panicking handler must still produce an access record with status 500:
+// accessLog wraps recoverPanics, so it only sees the 500 if recovery runs
+// inside it rather than letting the panic unwind past the access logger.
+func TestRecoverPanicsAndAccessLog(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(accessLog(logger))
+	router.Use(recoverPanics(logger))
+	router.GET("/boom", func(*gin.Context) { panic("boom") })
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/boom", nil))
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "panic recovered") {
+		t.Errorf("expected panic log, got %q", out)
+	}
+	if !strings.Contains(out, `"status":500`) {
+		t.Errorf("expected access log with status 500, got %q", out)
 	}
 }

@@ -20,9 +20,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/http/httptrace"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -32,7 +34,6 @@ import (
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/logging"
 	"github.com/fxamacker/cbor/v2"
 	cors "github.com/gin-contrib/cors"
-	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	maestro "github.com/maestro-org/go-sdk/client"
 )
@@ -41,16 +42,16 @@ func Start(cfg *config.Config) error {
 	// Standard logging
 	logger := logging.GetLogger()
 	if cfg.Tls.CertFilePath != "" && cfg.Tls.KeyFilePath != "" {
-		logger.Infof(
-			"starting API TLS listener on %s:%d",
-			cfg.Api.ListenAddress,
-			cfg.Api.ListenPort,
+		logger.Info(
+			"starting API TLS listener",
+			"address", cfg.Api.ListenAddress,
+			"port", cfg.Api.ListenPort,
 		)
 	} else {
-		logger.Infof(
-			"starting API listener on %s:%d",
-			cfg.Api.ListenAddress,
-			cfg.Api.ListenPort,
+		logger.Info(
+			"starting API listener",
+			"address", cfg.Api.ListenAddress,
+			"port", cfg.Api.ListenPort,
 		)
 	}
 	// Disable gin debug output
@@ -59,14 +60,12 @@ func Start(cfg *config.Config) error {
 
 	// Configure router
 	router := gin.New()
-	// Catch panics and return a 500
-	router.Use(gin.Recovery())
 	// Configure cors
 	router.Use(cors.Default())
-	// Access logging
+	// Access logging, then panic recovery so recovered requests are still logged
 	accessLogger := logging.GetAccessLogger()
-	router.Use(ginzap.Ginzap(accessLogger, "", true))
-	router.Use(ginzap.RecoveryWithZap(accessLogger, true))
+	router.Use(accessLog(accessLogger))
+	router.Use(recoverPanics(accessLogger))
 
 	// Configure routes
 	router.GET("/healthcheck", handleHealthcheck)
@@ -86,6 +85,52 @@ func Start(cfg *config.Config) error {
 	}
 }
 
+// accessLog logs one record per request after the handler chain completes.
+func accessLog(logger *slog.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
+		c.Next()
+		attrs := []any{
+			"status", c.Writer.Status(),
+			"method", c.Request.Method,
+			"path", path,
+			"query", query,
+			"ip", c.ClientIP(),
+			"user-agent", c.Request.UserAgent(),
+			"latency", time.Since(start).Seconds(),
+		}
+		if len(c.Errors) > 0 {
+			attrs = append(attrs, "errors", c.Errors.String())
+		}
+		logger.Info(path, attrs...)
+	}
+}
+
+// recoverPanics logs a panic and answers 500. http.ErrAbortHandler is
+// re-raised because net/http uses it to abort a response deliberately.
+func recoverPanics(logger *slog.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				if rec == http.ErrAbortHandler { //nolint:errorlint // sentinel panic value, not an error chain
+					panic(rec)
+				}
+				logger.Error(
+					"panic recovered",
+					"error", fmt.Sprint(rec),
+					"method", c.Request.Method,
+					"path", c.Request.URL.Path,
+					"stack", string(debug.Stack()),
+				)
+				c.AbortWithStatus(http.StatusInternalServerError)
+			}
+		}()
+		c.Next()
+	}
+}
+
 func handleHealthcheck(c *gin.Context) {
 	// TODO: add some actual health checking here
 	c.JSON(200, gin.H{"failed": false})
@@ -95,37 +140,37 @@ func handleSubmitTx(c *gin.Context) {
 	cfg := config.GetConfig()
 	logger := logging.GetLogger()
 	if len(cfg.Backends) == 0 {
-		logger.Errorf("no backends configured")
+		logger.Error("no backends configured")
 		c.String(500, "no backends configured")
 		return
 	}
 	// Read transaction from request body
 	rawTx, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		logger.Errorf("failed to read request body: %s", err)
+		logger.Error("failed to read request body", "error", err)
 		c.String(500, "failed to request body")
 		return
 	}
 	if c.Request.Body != nil {
 		if err := c.Request.Body.Close(); err != nil {
-			logger.Errorf("failed to close request body: %s", err)
+			logger.Error("failed to close request body", "error", err)
 		}
 	}
-	logger.Debugf("transaction dump: %x", rawTx)
+	logger.Debug("transaction dump", "tx", hex.EncodeToString(rawTx))
 	// Determine transaction type (era)
 	txType, err := ledger.DetermineTransactionType(rawTx)
 	if err != nil {
-		logger.Errorf("could not parse transaction to determine type: %s", err)
+		logger.Error("could not parse transaction to determine type", "error", err)
 		c.JSON(400, "could not parse transaction to determine type")
 		return
 	}
 	tx, err := ledger.NewTransactionFromCbor(txType, rawTx)
 	if err != nil {
-		logger.Errorf("failed to parse transaction CBOR: %s", err)
+		logger.Error("failed to parse transaction CBOR", "error", err)
 		c.String(400, fmt.Sprintf("failed to parse transaction CBOR: %s", err))
 		return
 	}
-	logger.Debugf("transaction ID: %s", tx.Hash())
+	logger.Debug("transaction ID", "tx_hash", tx.Hash().String())
 	// Debug log metadata messages
 	if tx.Metadata() != nil {
 		mdCbor := tx.Metadata().Cbor()
@@ -133,9 +178,9 @@ func handleSubmitTx(c *gin.Context) {
 		err := cbor.Unmarshal(mdCbor, &msgMetadata)
 		if err == nil {
 			if msgMetadata.Num674.Msg != nil {
-				logger.Debugf(
-					"metadata msg: %s",
-					strings.Join(msgMetadata.Num674.Msg, "\n"),
+				logger.Debug(
+					"metadata msg",
+					"msg", strings.Join(msgMetadata.Num674.Msg, "\n"),
 				)
 			}
 		}
@@ -164,16 +209,16 @@ func handleSubmitTx(c *gin.Context) {
 				body,
 			)
 			if err != nil {
-				logger.Errorf("failed to create request: %s", err)
+				logger.Error("failed to create request", "backend", backend, "error", err)
 				return
 			}
 			req.Header.Add("Content-Type", "application/cbor")
 			resp, err := client.Do(req) //nolint:gosec // G704: backend URL is from admin-controlled config
 			if err != nil {
-				logger.Errorf(
-					"failed to send request to backend %s: %s",
-					backend,
-					err,
+				logger.Error(
+					"failed to send request to backend",
+					"backend", backend,
+					"error", err,
 				)
 				return
 			}
@@ -181,34 +226,26 @@ func handleSubmitTx(c *gin.Context) {
 			// We have to read the entire response body and close it to prevent a memory leak
 			respBody, err := io.ReadAll(resp.Body)
 			if err != nil {
-				logger.Errorf("failed to read response body: %s", err)
+				logger.Error("failed to read response body", "backend", backend, "error", err)
 				return
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusAccepted {
-				logger.Infow(
-					fmt.Sprintf(
-						"successfully submitted transaction %s to backend %s",
-						tx.Hash(),
-						backend,
-					),
-					"latency",
-					elapsedTime.Seconds(),
-					"connReused",
-					connReused,
+				logger.Info(
+					"successfully submitted transaction to backend",
+					"tx_hash", tx.Hash().String(),
+					"backend", backend,
+					"latency", elapsedTime.Seconds(),
+					"connReused", connReused,
 				)
 			} else {
-				logger.Errorw(
-					fmt.Sprintf(
-						"failed to send request to backend %s: got response %d, %s",
-						backend,
-						resp.StatusCode,
-						string(respBody),
-					),
-					"latency",
-					elapsedTime.Seconds(),
-					"connReused",
-					connReused,
+				logger.Error(
+					"backend rejected transaction",
+					"backend", backend,
+					"status", resp.StatusCode,
+					"response", string(respBody),
+					"latency", elapsedTime.Seconds(),
+					"connReused", connReused,
 				)
 			}
 		}(backend)
@@ -226,46 +263,34 @@ func handleSubmitTx(c *gin.Context) {
 				_, err := maestroClient.TxManagerSubmitTurbo(txHex)
 				elapsedTime := time.Since(startTime)
 				if err != nil {
-					logger.Errorw(
-						fmt.Sprintf(
-							"failed to send request to Maestro: got response %v",
-							err,
-						),
-						"latency",
-						elapsedTime.Seconds(),
+					logger.Error(
+						"failed to send request to Maestro",
+						"error", err,
+						"latency", elapsedTime.Seconds(),
 					)
 					return
 				}
-				logger.Infow(
-					fmt.Sprintf(
-						"successfully submitted transaction %s to Maestro TurboTx",
-						tx.Hash(),
-					),
-					"latency",
-					elapsedTime.Seconds(),
+				logger.Info(
+					"successfully submitted transaction to Maestro TurboTx",
+					"tx_hash", tx.Hash().String(),
+					"latency", elapsedTime.Seconds(),
 				)
 				return
 			}
 			_, err := maestroClient.TxManagerSubmit(txHex)
 			elapsedTime := time.Since(startTime)
 			if err != nil {
-				logger.Errorw(
-					fmt.Sprintf(
-						"failed to send request to Maestro: got response %v",
-						err,
-					),
-					"latency",
-					elapsedTime.Seconds(),
+				logger.Error(
+					"failed to send request to Maestro",
+					"error", err,
+					"latency", elapsedTime.Seconds(),
 				)
 				return
 			}
-			logger.Infow(
-				fmt.Sprintf(
-					"successfully submitted transaction %s to Maestro",
-					tx.Hash(),
-				),
-				"latency",
-				elapsedTime.Seconds(),
+			logger.Info(
+				"successfully submitted transaction to Maestro",
+				"tx_hash", tx.Hash().String(),
+				"latency", elapsedTime.Seconds(),
 			)
 		}(cfg, rawTx)
 	}

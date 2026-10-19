@@ -7,12 +7,10 @@ require (
 	github.com/blinklabs-io/gouroboros v0.212.2
 	github.com/fxamacker/cbor/v2 v2.9.6
 	github.com/gin-contrib/cors v1.7.9
-	github.com/gin-contrib/zap v1.1.9
 	github.com/gin-gonic/gin v1.12.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/maestro-org/go-sdk v1.2.1
 	go.uber.org/automaxprocs v1.6.0
-	go.uber.org/zap v1.28.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -54,7 +52,6 @@ require (
 	github.com/utxorpc/go-codegen v0.19.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.8.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.29.0 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/net v0.58.0 // indirect

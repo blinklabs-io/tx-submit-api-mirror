@@ -15,57 +15,51 @@
 package logging
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-type Logger = zap.SugaredLogger
+var globalLogger = slog.Default()
 
-var globalLogger *Logger
-
-func Setup(cfg *config.LoggingConfig) {
-	// Build our custom logging config
-	loggerConfig := zap.NewProductionConfig()
-	// Change timestamp key name
-	loggerConfig.EncoderConfig.TimeKey = "timestamp"
-	// Use a human readable time format
-	loggerConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(
-		time.RFC3339,
-	)
-
-	// Set level
+// Setup configures the global logger to write JSON records to stdout at the
+// configured level. It returns an error if the level is not recognized.
+func Setup(cfg *config.LoggingConfig) error {
+	level := slog.LevelInfo
 	if cfg.Level != "" {
-		level, err := zapcore.ParseLevel(cfg.Level)
-		if err != nil {
-			log.Fatalf("error configuring logger: %s", err)
+		if err := level.UnmarshalText([]byte(cfg.Level)); err != nil {
+			return fmt.Errorf("invalid logging level %q: %w", cfg.Level, err)
 		}
-		loggerConfig.Level.SetLevel(level)
 	}
-
-	// Create the logger
-	l, err := loggerConfig.Build()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Store the "sugared" version of the logger
-	globalLogger = l.Sugar()
+	globalLogger = slog.New(
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: level,
+			ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+				switch a.Key {
+				case slog.TimeKey:
+					a.Key = "timestamp"
+					if t, ok := a.Value.Any().(time.Time); ok {
+						a.Value = slog.StringValue(t.Format(time.RFC3339))
+					}
+				case slog.MessageKey:
+					a.Key = "msg"
+				}
+				return a
+			},
+		}),
+	)
+	return nil
 }
 
-func GetLogger() *zap.SugaredLogger {
+// GetLogger returns the global logger.
+func GetLogger() *slog.Logger {
 	return globalLogger
 }
 
-func GetDesugaredLogger() *zap.Logger {
-	return globalLogger.Desugar()
-}
-
-func GetAccessLogger() *zap.Logger {
-	return globalLogger.Desugar().
-		With(zap.String("type", "access")).
-		WithOptions(zap.WithCaller(false))
+// GetAccessLogger returns the global logger tagged as the access log.
+func GetAccessLogger() *slog.Logger {
+	return globalLogger.With("type", "access")
 }
