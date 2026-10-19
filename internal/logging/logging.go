@@ -54,14 +54,11 @@ func Setup(cfg *config.LoggingConfig) error {
 		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level: level,
 			ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
-				switch a.Key {
-				case slog.TimeKey:
+				if a.Key == slog.TimeKey {
 					a.Key = "timestamp"
 					if t, ok := a.Value.Any().(time.Time); ok {
 						a.Value = slog.StringValue(t.Format(time.RFC3339))
 					}
-				case slog.MessageKey:
-					a.Key = "msg"
 				}
 				return a
 			},
