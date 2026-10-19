@@ -18,12 +18,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"math"
+	"net"
 	"net/http"
 	"net/http/httptrace"
+	"os"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -109,13 +112,26 @@ func accessLog(logger *slog.Logger) gin.HandlerFunc {
 }
 
 // recoverPanics logs a panic and answers 500. http.ErrAbortHandler is
-// re-raised because net/http uses it to abort a response deliberately.
+// re-raised because net/http uses it to abort a response deliberately. A
+// broken pipe means the client went away, so it is logged without a stack and
+// no status is written to the dead connection.
 func recoverPanics(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if rec := recover(); rec != nil {
 				if rec == http.ErrAbortHandler { //nolint:errorlint // sentinel panic value, not an error chain
 					panic(rec)
+				}
+				if isBrokenPipe(rec) {
+					logger.Warn(
+						"client connection closed",
+						"error", fmt.Sprint(rec),
+						"method", c.Request.Method,
+						"path", c.Request.URL.Path,
+					)
+					_ = c.Error(rec.(error)) //nolint:errcheck,forcetypeassert // isBrokenPipe guarantees an error
+					c.Abort()
+					return
 				}
 				logger.Error(
 					"panic recovered",
@@ -129,6 +145,24 @@ func recoverPanics(logger *slog.Logger) gin.HandlerFunc {
 		}()
 		c.Next()
 	}
+}
+
+func isBrokenPipe(rec any) bool {
+	err, ok := rec.(error)
+	if !ok {
+		return false
+	}
+	var opErr *net.OpError
+	if !errors.As(err, &opErr) {
+		return false
+	}
+	var sysErr *os.SyscallError
+	if !errors.As(opErr.Err, &sysErr) {
+		return false
+	}
+	msg := strings.ToLower(sysErr.Error())
+	return strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "connection reset by peer")
 }
 
 func handleHealthcheck(c *gin.Context) {

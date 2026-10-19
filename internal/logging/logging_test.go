@@ -14,6 +14,7 @@
 package logging
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
@@ -31,5 +32,31 @@ func TestSetupLevel(t *testing.T) {
 	}
 	if err := Setup(&config.LoggingConfig{Level: "bogus"}); err == nil {
 		t.Fatal("expected error for invalid level")
+	}
+}
+
+// Level names from the zap-based releases must keep working, because an
+// existing LOGGING_LEVEL=fatal would otherwise turn into a startup failure on
+// upgrade. They map to error, the highest level the service logs at.
+func TestParseLevelLegacyNames(t *testing.T) {
+	for _, name := range []string{"fatal", "PANIC", "dpanic"} {
+		level, err := parseLevel(name)
+		if err != nil {
+			t.Fatalf("%s: unexpected error: %v", name, err)
+		}
+		if level != slog.LevelError {
+			t.Errorf("%s: expected error level, got %v", name, level)
+		}
+	}
+	for name, want := range map[string]slog.Level{
+		"debug": slog.LevelDebug,
+		"info":  slog.LevelInfo,
+		"warn":  slog.LevelWarn,
+		"ERROR": slog.LevelError,
+	} {
+		level, err := parseLevel(name)
+		if err != nil || level != want {
+			t.Errorf("%s: got %v, %v; want %v", name, level, err, want)
+		}
 	}
 }

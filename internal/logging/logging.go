@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
@@ -25,14 +26,29 @@ import (
 
 var globalLogger = slog.Default()
 
+// parseLevel accepts the slog level names plus the zap names that earlier
+// releases accepted. The service logs nothing above error, so fatal, panic and
+// dpanic map to error rather than failing startup for existing configurations.
+func parseLevel(name string) (slog.Level, error) {
+	switch strings.ToLower(name) {
+	case "":
+		return slog.LevelInfo, nil
+	case "fatal", "panic", "dpanic":
+		return slog.LevelError, nil
+	}
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(name)); err != nil {
+		return 0, fmt.Errorf("invalid logging level %q: %w", name, err)
+	}
+	return level, nil
+}
+
 // Setup configures the global logger to write JSON records to stdout at the
 // configured level. It returns an error if the level is not recognized.
 func Setup(cfg *config.LoggingConfig) error {
-	level := slog.LevelInfo
-	if cfg.Level != "" {
-		if err := level.UnmarshalText([]byte(cfg.Level)); err != nil {
-			return fmt.Errorf("invalid logging level %q: %w", cfg.Level, err)
-		}
+	level, err := parseLevel(cfg.Level)
+	if err != nil {
+		return err
 	}
 	globalLogger = slog.New(
 		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{

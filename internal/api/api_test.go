@@ -17,9 +17,12 @@ package api
 import (
 	"bytes"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -113,5 +116,34 @@ func TestRecoverPanicsAndAccessLog(t *testing.T) {
 	}
 	if !strings.Contains(out, `"status":500`) {
 		t.Errorf("expected access log with status 500, got %q", out)
+	}
+}
+
+// A broken pipe is a client disconnect, not a server fault: it must be logged
+// as a warning without a stack trace and must not be reported as a panic.
+func TestRecoverPanicsBrokenPipe(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(recoverPanics(logger))
+	router.GET("/pipe", func(*gin.Context) {
+		panic(&net.OpError{
+			Op:  "write",
+			Err: os.NewSyscallError("write", syscall.EPIPE),
+		})
+	})
+
+	router.ServeHTTP(
+		httptest.NewRecorder(),
+		httptest.NewRequest(http.MethodGet, "/pipe", nil),
+	)
+
+	out := buf.String()
+	if strings.Contains(out, "panic recovered") || strings.Contains(out, "stack") {
+		t.Errorf("broken pipe must not be logged as a panic, got %q", out)
+	}
+	if !strings.Contains(out, "client connection closed") {
+		t.Errorf("expected warning, got %q", out)
 	}
 }
