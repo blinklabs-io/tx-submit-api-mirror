@@ -45,10 +45,16 @@ Application configuration:
     (default: empty)
 - `API_LISTEN_PORT` - Port to bind for API calls (default: 8090)
 - `CLIENT_TIMEOUT` - Timeout for async HTTP operations (default: 60000)
-- `LOGGING_LEVEL` - Logging level for log output (default: info)
+- `LOGGING_LEVEL` - Logging level for log output: `debug`, `info`, `warn` or
+    `error` (default: info). The former `dpanic`, `panic` and `fatal` values
+    are still accepted and behave as `error`.
 - `TLS_CERT_FILE_PATH` - SSL certificate to use, requires `TLS_KEY_FILE_PATH`
     (default: empty)
 - `TLS_KEY_FILE_PATH` - SSL certificate key to use (default: empty)
+
+Logs are written to stdout as JSON records with `timestamp` (RFC3339),
+uppercase `level` (`DEBUG`, `INFO`, `WARN`, `ERROR`), `msg` and structured
+fields. Request records carry `"type":"access"`. There is no `caller` field.
 
 Connection to the backends can be configured using general HTTP Cardano
 transaction submission APIs or using infrastructure providers with a
