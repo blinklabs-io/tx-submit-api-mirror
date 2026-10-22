@@ -380,8 +380,7 @@ func TestSlowHeadersAreDropped(t *testing.T) {
 	_, _ = conn.Write([]byte("GET /healthcheck HTTP/1.1\r\nHost: x\r\n"))
 	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	_, err = io.ReadAll(conn)
-	var netErr net.Error
-	if err != nil && (errorsAs(err, &netErr) && netErr.Timeout()) {
+	if netErr, ok := err.(net.Error); ok && netErr != nil && netErr.Timeout() { //nolint:errorlint // a read deadline error is returned directly, never wrapped
 		t.Fatal("connection was still open after ReadHeaderTimeout")
 	}
 }
@@ -392,11 +391,17 @@ func TestAccessLogIgnoresForwardedFor(t *testing.T) {
 	logs := &logCapture{}
 	app := httptest.NewServer(newHandler(slogTo(logs)))
 	t.Cleanup(app.Close)
-	target, _ := url.Parse(app.URL)
+	target, err := url.Parse(app.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
 	proxy := httptest.NewServer(httputil.NewSingleHostReverseProxy(target))
 	t.Cleanup(proxy.Close)
 
-	req, _ := http.NewRequest(http.MethodGet, proxy.URL+"/healthcheck", nil)
+	req, err := http.NewRequest(http.MethodGet, proxy.URL+"/healthcheck", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("X-Forwarded-For", "203.0.113.9")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -433,9 +438,6 @@ func testTxWithMessage(t *testing.T, msg ...string) ([]byte, string) {
 
 // hexString is the lowercase hex form the transaction dump log uses.
 func hexString(b []byte) string { return hex.EncodeToString(b) }
-
-// errorsAs wraps errors.As for use in a condition.
-func errorsAs(err error, target any) bool { return errors.As(err, target) }
 
 // slogTo returns a JSON logger writing to w.
 func slogTo(w io.Writer) *slog.Logger { return slog.New(slog.NewJSONHandler(w, nil)) }
