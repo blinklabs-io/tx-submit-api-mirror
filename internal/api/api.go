@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"os"
+	"path"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -107,9 +108,9 @@ func newHandler(accessLogger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/healthcheck/" && r.Method == http.MethodGet:
-			redirectToPath("/healthcheck")(w, r)
+			redirectTrailingSlash(w, r)
 		case r.URL.Path == "/api/submit/tx/" && r.Method == http.MethodPost:
-			redirectToPath("/api/submit/tx")(w, r)
+			redirectTrailingSlash(w, r)
 		default:
 			app.ServeHTTP(w, r)
 		}
@@ -139,21 +140,57 @@ func notFound(w http.ResponseWriter) {
 	_, _ = io.WriteString(w, "404 page not found")
 }
 
-// redirectToPath sends the request to path, keeping the query string. A POST
-// uses 307 so the client repeats the method and body; 301 would turn it into
-// a GET and drop the transaction.
-func redirectToPath(path string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		target := path
-		if r.URL.RawQuery != "" {
-			target += "?" + r.URL.RawQuery
-		}
-		code := http.StatusTemporaryRedirect
-		if r.Method == http.MethodGet {
-			code = http.StatusMovedPermanently
-		}
-		http.Redirect(w, r, target, code) //nolint:gosec // G710: target is a fixed path plus the request's own query
+// redirectTrailingSlash sends a request for a routed path with a trailing
+// slash to the same path without it, keeping the query string. A POST uses 307
+// so the client repeats the method and body; 301 would turn it into a GET and
+// drop the transaction.
+//
+// A proxy that mounts the service under a prefix and strips it sets
+// X-Forwarded-Prefix, and the redirect must stay under that prefix or the
+// client's repeated submission lands outside the service. The prefix is
+// cleaned to letters, digits, '-' and '/', with repeated slashes collapsed, and
+// the request path is rewritten before http.Redirect, which normalizes the
+// resulting location. This reproduces the redirect the service has always sent,
+// including for a prefix without a leading slash.
+func redirectTrailingSlash(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Path
+	if prefix := path.Clean(r.Header.Get("X-Forwarded-Prefix")); prefix != "." {
+		prefix = removeRepeatedSlashes(sanitizePathChars(prefix))
+		p = prefix + "/" + r.URL.Path
 	}
+	r.URL.Path = p + "/"
+	if len(p) > 1 && p[len(p)-1] == '/' {
+		r.URL.Path = p[:len(p)-1]
+	}
+	code := http.StatusTemporaryRedirect
+	if r.Method == http.MethodGet {
+		code = http.StatusMovedPermanently
+	}
+	http.Redirect(w, r, r.URL.String(), code) //nolint:gosec // G710: the target is the request's own path under a sanitized prefix
+}
+
+// sanitizePathChars keeps only the characters allowed in a forwarded prefix.
+func sanitizePathChars(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
+			r == '/', r == '-':
+			return r
+		}
+		return -1
+	}, s)
+}
+
+// removeRepeatedSlashes collapses each run of '/' to a single '/'.
+func removeRepeatedSlashes(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '/' && i > 0 && s[i-1] == '/' {
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
 }
 
 const (

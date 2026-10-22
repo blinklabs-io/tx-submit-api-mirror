@@ -480,3 +480,43 @@ func TestAccessLogKeepsFirstStatus(t *testing.T) {
 		t.Errorf("expected status 200, got %q", buf.String())
 	}
 }
+
+// A proxy that mounts the service under a prefix and strips it sends
+// X-Forwarded-Prefix. The redirect must stay under that prefix, otherwise the
+// client's repeated submission lands outside the service and gets a 404. The
+// expected locations are the ones the service has always returned, including
+// the sanitizing of unsafe characters and the odd result for a prefix without a
+// leading slash.
+func TestTrailingSlashRedirectKeepsForwardedPrefix(t *testing.T) {
+	var buf bytes.Buffer
+	h := newTestHandler(&buf)
+	for _, tt := range []struct {
+		method, path, prefix, wantLoc string
+		wantCode                      int
+	}{
+		{http.MethodPost, "/api/submit/tx/", "/mounted", "/mounted/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "/mounted/", "/mounted/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "/a/b", "/a/b/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "//x//y", "/x/y/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "/a b", "/ab/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "/a?b=1", "/ab1/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "/../etc", "/etc/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "mounted", "mounted/api/submit/mounted/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", ".", "/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "/", "/api/submit/tx", 307},
+		{http.MethodPost, "/api/submit/tx/", "", "/api/submit/tx", 307},
+		{http.MethodGet, "/healthcheck/", "/mounted", "/mounted/healthcheck", 301},
+		{http.MethodGet, "/healthcheck/?q=1", "/mounted", "/mounted/healthcheck?q=1", 301},
+	} {
+		req := httptest.NewRequest(tt.method, tt.path, nil)
+		if tt.prefix != "" {
+			req.Header.Set("X-Forwarded-Prefix", tt.prefix)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if w.Code != tt.wantCode || w.Header().Get("Location") != tt.wantLoc {
+			t.Errorf("%s %s prefix %q: got %d %q, want %d %q", tt.method, tt.path,
+				tt.prefix, w.Code, w.Header().Get("Location"), tt.wantCode, tt.wantLoc)
+		}
+	}
+}
