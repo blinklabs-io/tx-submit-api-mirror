@@ -1,6 +1,6 @@
 module github.com/blinklabs-io/tx-submit-api-mirror
 
-go 1.26.8
+go 1.26.10
 
 require (
 	github.com/blinklabs-io/cardano-models v0.7.2
