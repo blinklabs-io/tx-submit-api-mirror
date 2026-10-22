@@ -162,18 +162,22 @@ const (
 	corsMaxAge       = "43200"
 )
 
-// corsMiddleware allows every origin. Requests without an Origin header are not
-// cross-origin and pass through untouched. A preflight is an OPTIONS request
-// that also names the method it wants; a bare OPTIONS falls through to the mux.
+// corsMiddleware allows every origin. A request without an Origin header, or
+// whose Origin is the request's own host (a same-origin fetch), is not a CORS
+// request and passes through untouched. Any other OPTIONS request is a
+// preflight and is answered here with 204, whether or not it names the
+// requested method; it never reaches routing.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Origin") == "" {
+		origin := r.Header.Get("Origin")
+		if origin == "" ||
+			origin == "http://"+r.Host ||
+			origin == "https://"+r.Host {
 			next.ServeHTTP(w, r)
 			return
 		}
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		if r.Method == http.MethodOptions &&
-			r.Header.Get("Access-Control-Request-Method") != "" {
+		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Methods", corsAllowMethods)
 			w.Header().Set("Access-Control-Allow-Headers", corsAllowHeaders)
 			w.Header().Set("Access-Control-Max-Age", corsMaxAge)
@@ -185,15 +189,28 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 // statusRecorder captures the status code, which net/http does not expose
-// after the handler has written it.
+// after the handler has written it. Only the first status counts, as with the
+// real connection: a later WriteHeader is ignored by net/http, so recording it
+// would log a status the client never saw. err carries a recovered client
+// error up to the access log.
 type statusRecorder struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
+	err         error
 }
 
 func (sr *statusRecorder) WriteHeader(status int) {
-	sr.status = status
+	if !sr.wroteHeader {
+		sr.status = status
+		sr.wroteHeader = true
+	}
 	sr.ResponseWriter.WriteHeader(status)
+}
+
+func (sr *statusRecorder) Write(b []byte) (int, error) {
+	sr.wroteHeader = true
+	return sr.ResponseWriter.Write(b)
 }
 
 // Unwrap lets http.ResponseController reach the underlying writer.
@@ -218,8 +235,7 @@ func accessLog(logger *slog.Logger) func(http.Handler) http.Handler {
 			start := time.Now()
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(rec, r)
-			logger.Info(
-				r.URL.Path,
+			attrs := []any{
 				"status", rec.status,
 				"method", r.Method,
 				"path", r.URL.Path,
@@ -227,7 +243,11 @@ func accessLog(logger *slog.Logger) func(http.Handler) http.Handler {
 				"ip", clientIP(r),
 				"user-agent", r.UserAgent(),
 				"latency", time.Since(start).Seconds(),
-			)
+			}
+			if rec.err != nil {
+				attrs = append(attrs, "errors", "Error #01: "+rec.err.Error()+"\n")
+			}
+			logger.Info(r.URL.Path, attrs...)
 		})
 	}
 }
@@ -251,6 +271,9 @@ func recoverPanics(logger *slog.Logger) func(http.Handler) http.Handler {
 							"method", r.Method,
 							"path", r.URL.Path,
 						)
+						if sr, ok := w.(*statusRecorder); ok {
+							sr.err, _ = rec.(error)
+						}
 						return
 					}
 					logger.Error(
@@ -260,11 +283,7 @@ func recoverPanics(logger *slog.Logger) func(http.Handler) http.Handler {
 						"path", r.URL.Path,
 						"stack", string(debug.Stack()),
 					)
-					http.Error(
-						w,
-						http.StatusText(http.StatusInternalServerError),
-						http.StatusInternalServerError,
-					)
+					w.WriteHeader(http.StatusInternalServerError)
 				}
 			}()
 			next.ServeHTTP(w, r)

@@ -16,6 +16,7 @@ package api
 
 import (
 	"bytes"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -267,7 +268,7 @@ func TestRedirectsCarryNoCORSHeaders(t *testing.T) {
 	var buf bytes.Buffer
 	h := newTestHandler(&buf)
 	req := httptest.NewRequest(http.MethodGet, "/healthcheck/", nil)
-	req.Header.Set("Origin", "https://example.com")
+	req.Header.Set("Origin", "https://app.example")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 	if w.Code != http.StatusMovedPermanently {
@@ -287,7 +288,7 @@ func TestCORS(t *testing.T) {
 
 	t.Run("simple cross-origin", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/healthcheck", nil)
-		req.Header.Set("Origin", "https://example.com")
+		req.Header.Set("Origin", "https://app.example")
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
 		if got := w.Header().Get("Access-Control-Allow-Origin"); got != "*" {
@@ -300,7 +301,7 @@ func TestCORS(t *testing.T) {
 
 	t.Run("preflight", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodOptions, "/api/submit/tx", nil)
-		req.Header.Set("Origin", "https://example.com")
+		req.Header.Set("Origin", "https://app.example")
 		req.Header.Set("Access-Control-Request-Method", "POST")
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
@@ -372,5 +373,110 @@ func TestTrailingSlashRedirects(t *testing.T) {
 			t.Errorf("%s %s: got %d %q, want %d %q", tt.method, tt.path,
 				w.Code, w.Header().Get("Location"), tt.wantCode, tt.wantLoc)
 		}
+	}
+}
+
+// Any OPTIONS request that carries an Origin is a preflight, even without
+// Access-Control-Request-Method: it is answered 204 with the allowance headers
+// and never reaches routing, which would otherwise return 404.
+func TestCORSPreflightWithoutRequestMethod(t *testing.T) {
+	var buf bytes.Buffer
+	h := newTestHandler(&buf)
+	req := httptest.NewRequest(http.MethodOptions, "/healthcheck", nil)
+	req.Header.Set("Origin", "http://evil.example")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("status: got %d, want 204", w.Code)
+	}
+	for k, want := range map[string]string{
+		"Access-Control-Allow-Origin":  "*",
+		"Access-Control-Allow-Methods": corsAllowMethods,
+		"Access-Control-Allow-Headers": corsAllowHeaders,
+		"Access-Control-Max-Age":       corsMaxAge,
+	} {
+		if got := w.Header().Get(k); got != want {
+			t.Errorf("%s: got %q, want %q", k, got, want)
+		}
+	}
+}
+
+// An Origin equal to the request's own host is a same-origin fetch, not a CORS
+// request: no CORS headers are added and an OPTIONS falls through to routing.
+func TestCORSSameOriginIsUntouched(t *testing.T) {
+	var buf bytes.Buffer
+	h := newTestHandler(&buf)
+	for _, scheme := range []string{"http", "https"} {
+		get := httptest.NewRequest(http.MethodGet, "/healthcheck", nil)
+		get.Header.Set("Origin", scheme+"://"+get.Host)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, get)
+		if w.Code != http.StatusOK || w.Header().Get("Access-Control-Allow-Origin") != "" {
+			t.Errorf("%s GET: got %d with allow-origin %q", scheme, w.Code,
+				w.Header().Get("Access-Control-Allow-Origin"))
+		}
+
+		opts := httptest.NewRequest(http.MethodOptions, "/healthcheck", nil)
+		opts.Header.Set("Origin", scheme+"://"+opts.Host)
+		opts.Header.Set("Access-Control-Request-Method", "GET")
+		w = httptest.NewRecorder()
+		h.ServeHTTP(w, opts)
+		if w.Code != http.StatusNotFound || w.Header().Get("Access-Control-Allow-Origin") != "" {
+			t.Errorf("%s OPTIONS: got %d with allow-origin %q", scheme, w.Code,
+				w.Header().Get("Access-Control-Allow-Origin"))
+		}
+	}
+}
+
+// A recovered panic answers a bare 500 with no body, as the service always has.
+func TestRecoveredPanicHasEmptyBody(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	h := recoverPanics(logger)(http.HandlerFunc(
+		func(http.ResponseWriter, *http.Request) { panic("boom") },
+	))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/x", nil))
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status: got %d, want 500", w.Code)
+	}
+	if w.Body.Len() != 0 {
+		t.Errorf("body: got %q, want empty", w.Body.String())
+	}
+}
+
+// A client disconnect panic is recorded on the access log as "errors", the
+// attribute the service has always attached to that path.
+func TestAccessLogRecordsBrokenPipeError(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	h := accessLog(logger)(recoverPanics(logger)(http.HandlerFunc(
+		func(http.ResponseWriter, *http.Request) {
+			panic(&net.OpError{
+				Op:  "write",
+				Err: os.NewSyscallError("write", syscall.EPIPE),
+			})
+		},
+	)))
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/pipe", nil))
+	want := `"errors":"Error #01: write: write: broken pipe\n"`
+	if !strings.Contains(buf.String(), want) {
+		t.Errorf("access record lacks %s, got %q", want, buf.String())
+	}
+}
+
+// Only the first status counts. A handler that sends 200 and then panics has
+// already told the client 200, so the access record must not say 500.
+func TestAccessLogKeepsFirstStatus(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	h := accessLog(logger)(recoverPanics(logger)(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			panic("after headers")
+		},
+	)))
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/x", nil))
+	if !strings.Contains(buf.String(), `"status":200`) {
+		t.Errorf("expected status 200, got %q", buf.String())
 	}
 }
