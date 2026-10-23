@@ -7,7 +7,11 @@ ROOT_DIR=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 GO_FILES=$(shell find $(ROOT_DIR) -name '*.go')
 
-GO_LDFLAGS=-ldflags "-s -w"
+# Extract Go module name from go.mod
+GOMODULE=$(shell grep ^module $(ROOT_DIR)/go.mod | awk '{ print $$2 }')
+
+# Set version strings based on git tag and current ref
+GO_LDFLAGS=-ldflags "-s -w -X '$(GOMODULE)/internal/version.Version=$(shell git describe --tags --exact-match 2>/dev/null)' -X '$(GOMODULE)/internal/version.CommitHash=$(shell git rev-parse --short HEAD)'"
 
 .PHONY: build image mod-tidy
 

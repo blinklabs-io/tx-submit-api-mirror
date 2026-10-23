@@ -22,6 +22,7 @@ import (
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/api"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/logging"
+	"github.com/blinklabs-io/tx-submit-api-mirror/internal/version"
 	"go.uber.org/automaxprocs/maxprocs"
 )
 
@@ -55,6 +56,11 @@ func main() {
 		os.Exit(1)
 	}
 	logger := logging.GetLogger()
+
+	logger.Info(
+		"starting tx-submit-api-mirror",
+		"version", version.GetVersionString(),
+	)
 
 	// Configure max processes with our logger wrapper, toss undo func
 	_, err = maxprocs.Set(maxprocs.Logger(logPrintf))
