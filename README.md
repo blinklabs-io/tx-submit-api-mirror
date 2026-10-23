@@ -45,12 +45,20 @@ Application configuration:
     (default: empty)
 - `API_LISTEN_PORT` - Port to bind for API calls (default: 8090)
 - `CLIENT_TIMEOUT` - Timeout for async HTTP operations (default: 60000)
+- `DEBUG_ADDRESS` - Address to bind for pprof debugging (default: localhost)
+- `DEBUG_PORT` - Port to bind for pprof debugging, disabled if 0 (default: 0)
 - `LOGGING_LEVEL` - Logging level for log output: `debug`, `info`, `warn` or
     `error` (default: info). The former `dpanic`, `panic` and `fatal` values
     are still accepted and behave as `error`.
 - `TLS_CERT_FILE_PATH` - SSL certificate to use, requires `TLS_KEY_FILE_PATH`
     (default: empty)
 - `TLS_KEY_FILE_PATH` - SSL certificate key to use (default: empty)
+
+The debug listener serves the Go pprof endpoints (`/debug/pprof/`) on its own
+port, separate from the API. It has no authentication or TLS and exposes
+internals such as goroutine stacks and the command line, so keep it bound to
+`localhost` (the default) or restrict it with a firewall or network policy
+before setting `DEBUG_ADDRESS` to a non-loopback address.
 
 Logs are written to stdout as JSON records with `timestamp` (RFC3339),
 uppercase `level` (`DEBUG`, `INFO`, `WARN`, `ERROR`), `msg` and structured
