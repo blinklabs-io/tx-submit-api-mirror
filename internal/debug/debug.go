@@ -15,9 +15,10 @@
 package debug
 
 import (
-	"fmt"
+	"net"
 	"net/http"
 	"net/http/pprof"
+	"strconv"
 	"time"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
@@ -36,10 +37,11 @@ func NewServer(cfg *config.Config) *http.Server {
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	return &http.Server{
-		Addr: fmt.Sprintf(
-			"%s:%d",
+		// JoinHostPort brackets an IPv6 address; "%s:%d" would turn ::1 and
+		// 6060 into the unparseable "::1:6060".
+		Addr: net.JoinHostPort(
 			cfg.Debug.ListenAddress,
-			cfg.Debug.ListenPort,
+			strconv.FormatUint(uint64(cfg.Debug.ListenPort), 10),
 		),
 		Handler:           mux,
 		ReadHeaderTimeout: 60 * time.Second,

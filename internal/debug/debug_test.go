@@ -16,6 +16,7 @@ package debug
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -39,6 +40,57 @@ func TestNewServerAddress(t *testing.T) {
 	}
 	if srv.ReadHeaderTimeout <= 0 {
 		t.Error("ReadHeaderTimeout is unset")
+	}
+}
+
+// The listen address must be valid for IPv4, hostnames, IPv6 and the wildcard
+// forms. An IPv6 address needs brackets before the port; without them
+// ListenAndServe fails with "too many colons" and the service exits.
+func TestNewServerAddressForms(t *testing.T) {
+	for _, tt := range []struct {
+		address string
+		port    uint
+		want    string
+	}{
+		{"localhost", 6060, "localhost:6060"},
+		{"127.0.0.1", 6060, "127.0.0.1:6060"},
+		{"0.0.0.0", 6060, "0.0.0.0:6060"},
+		{"", 6060, ":6060"},
+		{"::1", 6060, "[::1]:6060"},
+		{"::", 6060, "[::]:6060"},
+		{"2001:db8::1", 6060, "[2001:db8::1]:6060"},
+	} {
+		got := NewServer(testConfig(tt.address, tt.port)).Addr
+		if got != tt.want {
+			t.Errorf("%q: got %q, want %q", tt.address, got, tt.want)
+		}
+	}
+}
+
+// The address NewServer builds for IPv6 loopback must actually bind.
+func TestNewServerBindsIPv6Loopback(t *testing.T) {
+	probe, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Skipf("IPv6 loopback unavailable: %v", err)
+	}
+	_ = probe.Close()
+
+	srv := NewServer(testConfig("::1", 0))
+	ln, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		t.Fatalf("listen on %q: %v", srv.Addr, err)
+	}
+	defer ln.Close()
+	go func() { _ = srv.Serve(ln) }()
+	defer srv.Close()
+
+	resp, err := http.Get("http://" + ln.Addr().String() + "/debug/pprof/") //nolint:noctx // local test server
+	if err != nil {
+		t.Fatalf("request over IPv6: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status: got %d, want 200", resp.StatusCode)
 	}
 }
 
