@@ -520,3 +520,20 @@ func TestTrailingSlashRedirectKeepsForwardedPrefix(t *testing.T) {
 		}
 	}
 }
+
+// The debug endpoints must not be reachable through the API listener. Importing
+// net/http/pprof registers them on http.DefaultServeMux, which the API does not
+// serve, so a request to the API for them must be a plain 404.
+func TestAPIDoesNotServePprof(t *testing.T) {
+	var buf bytes.Buffer
+	h := newTestHandler(&buf)
+	for _, path := range []string{
+		"/debug/pprof/", "/debug/pprof/cmdline", "/debug/pprof/heap",
+	} {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusNotFound {
+			t.Errorf("%s: got %d, want 404", path, w.Code)
+		}
+	}
+}

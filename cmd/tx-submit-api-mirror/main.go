@@ -21,6 +21,7 @@ import (
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/api"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
+	"github.com/blinklabs-io/tx-submit-api-mirror/internal/debug"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/logging"
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/version"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -68,6 +69,21 @@ func main() {
 		// If we hit this, something really wrong happened
 		logger.Error("failed to set max processes", "error", err)
 		os.Exit(1)
+	}
+
+	// Start debug listener
+	if cfg.Debug.ListenPort > 0 {
+		logger.Info(
+			"starting debug listener",
+			"address", cfg.Debug.ListenAddress,
+			"port", cfg.Debug.ListenPort,
+		)
+		go func() {
+			if err := debug.NewServer(cfg).ListenAndServe(); err != nil {
+				logger.Error("failed to start debug listener", "error", err)
+				os.Exit(1)
+			}
+		}()
 	}
 
 	// Start API listener

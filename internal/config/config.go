@@ -24,6 +24,7 @@ import (
 
 type Config struct {
 	Api      ApiConfig     `yaml:"api"`
+	Debug    DebugConfig   `yaml:"debug"`
 	Logging  LoggingConfig `yaml:"logging"`
 	Maestro  MaestroConfig `yaml:"maestro"`
 	Tls      TlsConfig     `yaml:"tls"`
@@ -34,6 +35,13 @@ type ApiConfig struct {
 	ListenAddress string `yaml:"address"        envconfig:"API_LISTEN_ADDRESS"`
 	ListenPort    uint   `yaml:"port"           envconfig:"API_LISTEN_PORT"`
 	ClientTimeout uint   `yaml:"client_timeout" envconfig:"CLIENT_TIMEOUT"`
+}
+
+// DebugConfig controls the pprof debug listener, which is off when ListenPort
+// is 0.
+type DebugConfig struct {
+	ListenAddress string `yaml:"address" envconfig:"DEBUG_ADDRESS"`
+	ListenPort    uint   `yaml:"port"    envconfig:"DEBUG_PORT"`
 }
 
 type LoggingConfig struct {
@@ -56,6 +64,10 @@ var globalConfig = &Config{
 		ListenAddress: "",
 		ListenPort:    8090,
 		ClientTimeout: 60000, // [ms]
+	},
+	Debug: DebugConfig{
+		ListenAddress: "localhost",
+		ListenPort:    0,
 	},
 	Logging: LoggingConfig{
 		Level: "info",
