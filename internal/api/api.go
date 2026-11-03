@@ -374,7 +374,7 @@ func handleHealthcheck(w http.ResponseWriter, _ *http.Request) {
 func handleSubmitTx(w http.ResponseWriter, r *http.Request) {
 	cfg := config.GetConfig()
 	logger := logging.GetLogger()
-	if len(cfg.Backends) == 0 {
+	if len(cfg.Backends) == 0 && cfg.Blockfrost.ApiKey == "" {
 		logger.Error("no backends configured")
 		writeText(w, http.StatusInternalServerError, "no backends configured")
 		return
@@ -531,6 +531,12 @@ func handleSubmitTx(w http.ResponseWriter, r *http.Request) {
 				"latency", elapsedTime.Seconds(),
 			)
 		}(cfg, rawTx)
+	}
+	// Optional Blockfrost
+	if cfg.Blockfrost.ApiKey != "" {
+		go submitBlockfrost(
+			submitCtx, client, cfg.Blockfrost, rawTx, tx.Hash().String(), logger,
+		)
 	}
 	// Return transaction ID
 	writeText(w, http.StatusAccepted, tx.Hash().String())
