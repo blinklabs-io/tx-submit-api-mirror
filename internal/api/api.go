@@ -532,6 +532,12 @@ func handleSubmitTx(w http.ResponseWriter, r *http.Request) {
 			)
 		}(cfg, rawTx)
 	}
+	// Optional Blockfrost
+	if cfg.Blockfrost.ApiKey != "" {
+		go submitBlockfrost(
+			submitCtx, client, cfg.Blockfrost, rawTx, tx.Hash().String(), logger,
+		)
+	}
 	// Return transaction ID
 	writeText(w, http.StatusAccepted, tx.Hash().String())
 }

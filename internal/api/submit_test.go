@@ -64,8 +64,8 @@ func withConfig(t *testing.T, mutate func(*config.Config)) {
 }
 
 type received struct {
-	method, path, contentType, apiKey string
-	body                              []byte
+	method, path, contentType, apiKey, projectID string
+	body                                         []byte
 }
 
 // recordingServer answers every request with status and reports what it saw.
@@ -81,6 +81,7 @@ func recordingServer(t *testing.T, status int, respBody string) (*httptest.Serve
 				path:        r.URL.Path,
 				contentType: r.Header.Get("Content-Type"),
 				apiKey:      r.Header.Get("api-key"),
+				projectID:   r.Header.Get("project_id"),
 				body:        body,
 			}
 			w.WriteHeader(status)

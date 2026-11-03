@@ -85,6 +85,19 @@ for known network magic configurations. Supported named networks are:
 - preprod
 - preview
 
+Blockfrost configuration:
+- `BLOCKFROST_API_KEY` - Project ID of a Cardano project on Blockfrost; setting
+    it enables submission to Blockfrost
+- `BLOCKFROST_NETWORK` - Named Cardano network to use (default: mainnet)
+- `BLOCKFROST_BASE_URL` - Override the Blockfrost API URL derived from the
+    network (for example `https://cardano-mainnet.blockfrost.io/api/v0`)
+
+Supported Blockfrost named networks are:
+
+- mainnet
+- preprod
+- preview
+
 ### Sending transactions
 
 This implementation shares an API spec with IOHK's Haskell implementation. The

@@ -23,18 +23,27 @@ import (
 )
 
 type Config struct {
-	Api      ApiConfig     `yaml:"api"`
-	Debug    DebugConfig   `yaml:"debug"`
-	Logging  LoggingConfig `yaml:"logging"`
-	Maestro  MaestroConfig `yaml:"maestro"`
-	Tls      TlsConfig     `yaml:"tls"`
-	Backends []string      `yaml:"backends" envconfig:"BACKENDS"`
+	Api        ApiConfig        `yaml:"api"`
+	Blockfrost BlockfrostConfig `yaml:"blockfrost"`
+	Debug      DebugConfig      `yaml:"debug"`
+	Logging    LoggingConfig    `yaml:"logging"`
+	Maestro    MaestroConfig    `yaml:"maestro"`
+	Tls        TlsConfig        `yaml:"tls"`
+	Backends   []string         `yaml:"backends" envconfig:"BACKENDS"`
 }
 
 type ApiConfig struct {
 	ListenAddress string `yaml:"address"        envconfig:"API_LISTEN_ADDRESS"`
 	ListenPort    uint   `yaml:"port"           envconfig:"API_LISTEN_PORT"`
 	ClientTimeout uint   `yaml:"client_timeout" envconfig:"CLIENT_TIMEOUT"`
+}
+
+// BlockfrostConfig enables submission to Blockfrost when ApiKey is set. BaseUrl
+// overrides the host derived from Network.
+type BlockfrostConfig struct {
+	ApiKey  string `yaml:"apiKey"  envconfig:"BLOCKFROST_API_KEY"` //nolint:gosec // G117: config field, not a hardcoded secret
+	Network string `yaml:"network" envconfig:"BLOCKFROST_NETWORK"`
+	BaseUrl string `yaml:"baseUrl" envconfig:"BLOCKFROST_BASE_URL"`
 }
 
 // DebugConfig controls the pprof debug listener, which is off when ListenPort
@@ -64,6 +73,9 @@ var globalConfig = &Config{
 		ListenAddress: "",
 		ListenPort:    8090,
 		ClientTimeout: 60000, // [ms]
+	},
+	Blockfrost: BlockfrostConfig{
+		Network: "mainnet",
 	},
 	Debug: DebugConfig{
 		ListenAddress: "localhost",

@@ -5,6 +5,7 @@ go 1.26.10
 require (
 	github.com/blinklabs-io/cardano-models v0.7.2
 	github.com/blinklabs-io/gouroboros v0.213.11
+	github.com/blockfrost/blockfrost-go v0.5.0
 	github.com/fxamacker/cbor/v2 v2.9.6
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/maestro-org/go-sdk v1.2.1
@@ -27,6 +28,8 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.3 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/kr/text v0.2.0 // indirect

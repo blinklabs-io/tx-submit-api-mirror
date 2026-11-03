@@ -69,3 +69,27 @@ func TestDebugFromEnvironment(t *testing.T) {
 			cfg.Debug.ListenAddress, cfg.Debug.ListenPort)
 	}
 }
+
+// Blockfrost defaults to mainnet and stays disabled until a key is set.
+func TestBlockfrostDefaultsAndEnvironment(t *testing.T) {
+	withCleanConfig(t)
+	unsetenv(t, "BLOCKFROST_API_KEY")
+	unsetenv(t, "BLOCKFROST_NETWORK")
+	unsetenv(t, "BLOCKFROST_BASE_URL")
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Blockfrost.ApiKey != "" || cfg.Blockfrost.Network != "mainnet" {
+		t.Errorf("defaults: got %+v", cfg.Blockfrost)
+	}
+	t.Setenv("BLOCKFROST_API_KEY", "k")
+	t.Setenv("BLOCKFROST_NETWORK", "preprod")
+	cfg, err = Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Blockfrost.ApiKey != "k" || cfg.Blockfrost.Network != "preprod" {
+		t.Errorf("env: got %+v", cfg.Blockfrost)
+	}
+}
