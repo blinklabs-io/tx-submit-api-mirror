@@ -18,6 +18,7 @@ import (
 	"encoding/hex"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/blinklabs-io/tx-submit-api-mirror/internal/config"
 )
@@ -104,10 +105,29 @@ func TestBlockfrostDisabledWithoutKey(t *testing.T) {
 		c.Blockfrost = config.BlockfrostConfig{Network: "preprod", BaseUrl: srv.URL}
 	})
 	submit(t, raw)
+	// Submission is asynchronous, so allow a request time to arrive before
+	// declaring the backend unused.
 	select {
 	case r := <-ch:
 		t.Fatalf("unexpected request: %s", r.path)
-	default:
+	case <-time.After(500 * time.Millisecond):
+	}
+}
+
+// Blockfrost alone is a valid configuration: with no node backends the
+// request must still be accepted and submitted.
+func TestSubmitTxBlockfrostOnly(t *testing.T) {
+	raw, hash := testTx(t)
+	srv, ch := recordingServer(t, http.StatusOK, `"`+hash+`"`)
+	withConfig(t, func(c *config.Config) {
+		c.Backends = nil
+		c.Blockfrost = config.BlockfrostConfig{ApiKey: "secret", BaseUrl: srv.URL}
+	})
+	if w := submit(t, raw); w.Code != http.StatusAccepted {
+		t.Fatalf("status: got %d, want 202", w.Code)
+	}
+	if r := waitFor(t, ch); r.projectID != "secret" {
+		t.Errorf("project_id: got %q", r.projectID)
 	}
 }
 

@@ -85,11 +85,13 @@ func TestBlockfrostDefaultsAndEnvironment(t *testing.T) {
 	}
 	t.Setenv("BLOCKFROST_API_KEY", "k")
 	t.Setenv("BLOCKFROST_NETWORK", "preprod")
+	t.Setenv("BLOCKFROST_BASE_URL", "http://localhost:9000/api/v0")
 	cfg, err = Load("")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Blockfrost.ApiKey != "k" || cfg.Blockfrost.Network != "preprod" {
+	if cfg.Blockfrost.ApiKey != "k" || cfg.Blockfrost.Network != "preprod" ||
+		cfg.Blockfrost.BaseUrl != "http://localhost:9000/api/v0" {
 		t.Errorf("env: got %+v", cfg.Blockfrost)
 	}
 }

@@ -374,7 +374,7 @@ func handleHealthcheck(w http.ResponseWriter, _ *http.Request) {
 func handleSubmitTx(w http.ResponseWriter, r *http.Request) {
 	cfg := config.GetConfig()
 	logger := logging.GetLogger()
-	if len(cfg.Backends) == 0 {
+	if len(cfg.Backends) == 0 && cfg.Blockfrost.ApiKey == "" {
 		logger.Error("no backends configured")
 		writeText(w, http.StatusInternalServerError, "no backends configured")
 		return
