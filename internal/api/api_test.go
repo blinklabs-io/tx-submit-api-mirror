@@ -80,7 +80,6 @@ func TestHTTPClientTimeoutPass(t *testing.T) {
 
 	// Make a request to the test server
 	resp, err := client.Get(testServer.URL)
-
 	// Verify that the request did not time out
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
